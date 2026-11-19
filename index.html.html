@@ -1,0 +1,2513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GO RANGE - VR sandbox shooting range</title>
+<!--
+  GO RANGE - a sandbox shooting range for the Oculus Go (WebXR) + desktop.
+  =========================================================================
+  HOW THIS FILE IS ORGANISED (search for the numbered headings):
+    1. Settings & weapon stats      <- easiest place to start tweaking
+    2. Renderer, scene, camera, player rig
+    3. Physics world (cannon.js)
+    4. Helpers (materials, canvas textures, random)
+    5. Sound effects (all made from code, no audio files)
+    6. The range itself (ground, walls, table, posts)
+    7. Props: crates, cans, dummies, barrels, plates, dropped mags
+   7b. NPCs: wooden mannequins - walking, limping, arm-clutching, ragdolls
+    8. Guns: models, ammo display, firing, recoil, reloading
+    9. Effects: bullet holes, sparks, tracers, explosions, laser
+   9b. Spider tools: WEB (yank / zip / swing) and ROPE (tie things together)
+   10. The shootable button board + scoreboard
+   11. Input: VR controller (trigger, flick, touchpad) + mouse/keyboard
+   12. Starting VR / desktop mode
+   13. The game loop (runs every frame)
+
+  WHY these old library versions? The Oculus Go's browser is frozen at an
+  old Chrome (version 77, from 2019). Newer three.js uses JavaScript the Go
+  can't read, so we pin three.js r125 + cannon.js 0.6.2, and the code below
+  avoids newer syntax like ?. and ??
+-->
+<style>
+  html, body { margin: 0; height: 100%; background: #0b0f14; color: #e8eef5;
+    font-family: "Segoe UI", system-ui, sans-serif; overflow: hidden; }
+  canvas { display: block; }
+  #overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: flex;
+    align-items: center; justify-content: center; background: rgba(8, 12, 18, 0.86); z-index: 10; }
+  #panel { max-width: 640px; padding: 28px 32px; background: #121a24; border: 2px solid #2b3a4d;
+    border-radius: 14px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
+  h1 { margin: 0 0 4px; font-size: 40px; letter-spacing: 6px; color: #ffb52e; }
+  .sub { margin: 0 0 18px; color: #8fa3b8; font-size: 14px; letter-spacing: 1px; }
+  .cols { display: flex; flex-wrap: wrap; }
+  .col { flex: 1 1 260px; margin: 0 12px 12px 0; }
+  .col h3 { margin: 0 0 6px; font-size: 13px; letter-spacing: 2px; color: #6fd3ff; }
+  .col ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.6; color: #c9d6e3; }
+  b { color: #fff; }
+  .btns { margin-top: 10px; }
+  button { font: inherit; font-weight: 700; letter-spacing: 2px; font-size: 18px; padding: 14px 26px;
+    margin: 0 10px 10px 0; border: none; border-radius: 10px; cursor: pointer; }
+  #vrBtn { background: #ffb52e; color: #1a1205; display: none; }
+  #deskBtn { background: #2b3a4d; color: #e8eef5; }
+  #status { margin-top: 8px; font-size: 13px; color: #8fa3b8; min-height: 18px; }
+  #crosshair { position: fixed; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px;
+    border-radius: 50%; background: #ff3b3b; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5); display: none; z-index: 5; }
+  #hint { position: fixed; left: 12px; bottom: 10px; font-size: 12px; color: rgba(255, 255, 255, 0.75);
+    text-shadow: 0 1px 2px #000; display: none; z-index: 5; }
+</style>
+</head>
+<body>
+<div id="overlay">
+  <div id="panel">
+    <h1>GO RANGE</h1>
+    <p class="sub">VR SANDBOX SHOOTING RANGE &middot; BUILT FOR THE OCULUS GO</p>
+    <div class="cols">
+      <div class="col">
+        <h3>IN VR (OCULUS GO)</h3>
+        <ul>
+          <li><b>Trigger</b> = shoot</li>
+          <li><b>Flick controller down + back up</b> = reload (mag swap!)</li>
+          <li><b>Thumb on touchpad</b> (no click) = walk</li>
+          <li><b>Click touchpad</b> centre = next gun &middot; bottom = reload &middot; left/right edge = turn</li>
+          <li>Board on your <b>left</b>: shoot buttons to spawn stuff + NPCs</li>
+          <li><b>Mannequins</b>: leg = limp, both legs = crawl, arm = they hold it, head = down</li>
+          <li><b>WEB</b> (board): hold trigger to yank things or zip yourself to walls &middot; <b>ROPE</b>: click 2 points to tie them</li>
+          <li>Turn around: there's a <b>back room</b> behind you</li>
+        </ul>
+      </div>
+      <div class="col">
+        <h3>ON A LAPTOP (FOR TESTING)</h3>
+        <ul>
+          <li><b>Click</b> to lock the mouse, then click = shoot</li>
+          <li><b>Hold click</b> = full auto (rifle)</li>
+          <li><b>WASD</b> = walk &middot; <b>Shift</b> = sprint</li>
+          <li><b>R</b> or <b>E</b> = reload &middot; <b>1 2 3</b> or <b>Q</b> = guns</li>
+          <li><b>4</b> = web &middot; <b>5</b> = rope &middot; <b>C</b> = cut all webs</li>
+          <li><b>Esc</b> = free your mouse</li>
+        </ul>
+      </div>
+    </div>
+    <div class="btns">
+      <button id="vrBtn">ENTER VR</button>
+      <button id="deskBtn">PLAY ON DESKTOP</button>
+    </div>
+    <div id="status">Checking for VR...</div>
+  </div>
+</div>
+<div id="crosshair"></div>
+<div id="hint">WASD walk &middot; Shift sprint &middot; R reload &middot; 1/2/3 guns &middot; 4 web &middot; 5 rope &middot; C cut &middot; shoot the board on the left to spawn stuff &middot; Esc to pause</div>
+
+<!-- Libraries: three.js draws the 3D world, cannon.js does the physics. -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.125.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
+
+<script>
+(function () {
+  'use strict';
+
+  if (!window.THREE || !window.CANNON) {
+    document.getElementById('status').textContent =
+      'Could not load three.js / cannon.js. Is the headset or laptop online?';
+    return;
+  }
+
+  // =========================================================================
+  // 1. SETTINGS & WEAPON STATS  (change these numbers and see what happens!)
+  // =========================================================================
+  var PLAYER_HEIGHT = 1.6;   // metres. The Go doesn't know your height, so we fake it.
+  var MAX_PROPS = 45;        // more physics objects = slower. The Go is a 2017 phone chip.
+  var MAX_MAGS = 8;          // dropped magazines lying on the floor
+  var WALK_SPEED = 2.2;      // metres per second (a brisk walk). Faster = more motion sickness in VR
+  var SPRINT_SPEED = 4.2;    // desktop only (hold Shift)
+  var SNAP_TURN = 45;        // degrees per snap turn in VR
+  var PLAYER_RADIUS = 0.25;  // how "fat" you are for bumping into walls
+  var MAX_DECALS = 40;       // bullet holes (each one is an extra draw call, the Go's GPU is weak)
+
+  // mag = rounds per magazine, rate = seconds between shots,
+  // impulse = how hard a bullet shoves stuff, spread = inaccuracy
+  var WEAPONS = {
+    pistol:  { name: 'G17',     mag: 17, auto: false, rate: 0.13, pellets: 1, spread: 0.004,
+               impulse: 4,   reload: 1.2, recoil: 0.05, offset: [0.16, -0.16, -0.34],
+               snd: { hi: 3200, lo: 160, len: 0.22, vol: 0.8 } },
+    rifle:   { name: 'AR-15',   mag: 30, auto: true,  rate: 0.095, pellets: 1, spread: 0.007,
+               impulse: 6,   reload: 1.7, recoil: 0.035, offset: [0.15, -0.17, -0.14],
+               snd: { hi: 2600, lo: 120, len: 0.25, vol: 0.85 } },
+    shotgun: { name: 'PUMP-12', mag: 6,  auto: false, rate: 0.75, pellets: 9, spread: 0.055,
+               impulse: 2.6, reload: 0,   recoil: 0.11, offset: [0.17, -0.19, -0.08],
+               snd: { hi: 1800, lo: 90, len: 0.4, vol: 1.0 } },
+    // spider tools (section 9b): no ammo, no reload
+    web:     { name: 'WEB',  tool: true, auto: false, rate: 0.2, offset: [0.15, -0.16, -0.3] },
+    rope:    { name: 'ROPE', tool: true, auto: false, rate: 0.2, offset: [0.15, -0.16, -0.3] }
+  };
+  var WEAPON_ORDER = ['pistol', 'rifle', 'shotgun', 'web', 'rope'];
+
+  // Everything that changes while you play lives in one object, so it's easy to inspect.
+  var state = {
+    started: false, vr: false,
+    weapon: 'pistol',
+    ammo: { pistol: 17, rifle: 30, shotgun: 6 },
+    reloading: null,           // reload-in-progress info, or null
+    triggerHeld: false, dryClicked: false, lastShot: -1,
+    laser: true, slowmo: false, moon: false, timeScale: 1,
+    stats: { shots: 0, hits: 0, heads: 0, booms: 0 }
+  };
+
+  // =========================================================================
+  // 2. RENDERER, SCENE, CAMERA, PLAYER RIG
+  // =========================================================================
+  var renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.xr.enabled = true;
+  // 'local' = "where your head started is the origin". The Go only tracks rotation,
+  // so this is the space it understands best.
+  renderer.xr.setReferenceSpaceType('local');
+  document.body.appendChild(renderer.domElement);
+
+  var scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x9cc8ea);
+  scene.fog = new THREE.Fog(0x9cc8ea, 30, 75);
+
+  var camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.03, 150);
+  camera.rotation.order = 'YXZ'; // yaw first, then pitch: stops the view rolling sideways
+
+  // The "rig" is your body. In VR the headset moves the camera *inside* the rig,
+  // so lifting the rig to 1.6 m puts your eyes at standing height.
+  var rig = new THREE.Group();
+  rig.position.set(0, PLAYER_HEIGHT, 0);
+  rig.add(camera);
+  scene.add(rig);
+
+  scene.add(new THREE.HemisphereLight(0xe4f2ff, 0x6b5a45, 0.95));
+  var sun = new THREE.DirectionalLight(0xffffff, 0.75);
+  sun.position.set(6, 12, 5);
+  scene.add(sun);
+
+  window.addEventListener('resize', function () {
+    if (state.vr) return;
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // =========================================================================
+  // 3. PHYSICS WORLD
+  // three.js only DRAWS things. cannon.js is a separate invisible world where
+  // boxes have mass, gravity and collisions. Every frame we copy each physics
+  // body's position onto its 3D model. Two worlds, kept in sync.
+  // =========================================================================
+  var world = new CANNON.World();
+  world.gravity.set(0, -9.82, 0);
+  world.broadphase = new CANNON.SAPBroadphase(world);
+  world.allowSleep = true;   // still objects "sleep" and cost nothing until something hits them
+  world.solver.iterations = 8;
+  world.defaultContactMaterial.friction = 0.45;
+  world.defaultContactMaterial.restitution = 0.12;
+
+  // =========================================================================
+  // 4. HELPERS
+  // =========================================================================
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+
+  var matCache = {};
+  function mat(color) {
+    if (!matCache[color]) matCache[color] = new THREE.MeshLambertMaterial({ color: color });
+    return matCache[color];
+  }
+  var geoCache = {};
+  function boxGeo(w, h, d) {
+    var k = w + '|' + h + '|' + d;
+    if (!geoCache[k]) geoCache[k] = new THREE.BoxBufferGeometry(w, h, d);
+    return geoCache[k];
+  }
+  function boxMesh(w, h, d, colorOrMat) {
+    var m = typeof colorOrMat === 'number' ? mat(colorOrMat) : colorOrMat;
+    return new THREE.Mesh(boxGeo(w, h, d), m);
+  }
+  // Draw on a 2D canvas, then use it as a texture. Every label/sign/texture here is made this way.
+  function canvasTexture(w, h, draw) {
+    var c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    var ctx = c.getContext('2d');
+    draw(ctx, w, h);
+    var tex = new THREE.CanvasTexture(c);
+    tex.anisotropy = 4;
+    return { tex: tex, canvas: c, ctx: ctx };
+  }
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+  function toCannon(v) { return new CANNON.Vec3(v.x, v.y, v.z); }
+
+  // Scheduled jobs: "do this in 0.2 seconds" (used for chain-reaction explosions, pump action...)
+  var jobs = [];
+  var gameTime = 0;
+  function later(seconds, fn) { jobs.push({ at: gameTime + seconds, fn: fn }); }
+
+  // =========================================================================
+  // 5. SOUND EFFECTS - all synthesised with the Web Audio API.
+  // A gunshot is basically a burst of white noise that gets quieter and duller
+  // very fast, plus a low "thump". Change the numbers to change the sound.
+  // =========================================================================
+  var actx = null, master = null, noiseBuf = null;
+  function audioInit() {
+    if (actx) { if (actx.state === 'suspended') actx.resume(); return; }
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    actx = new AC();
+    master = actx.createGain();
+    master.gain.value = 0.55;
+    master.connect(actx.destination);
+    noiseBuf = actx.createBuffer(1, actx.sampleRate, actx.sampleRate);
+    var data = noiseBuf.getChannelData(0);
+    for (var i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  }
+  function noise(o) {
+    if (!actx) return;
+    var t = actx.currentTime + (o.delay || 0);
+    var src = actx.createBufferSource(); src.buffer = noiseBuf;
+    var f = actx.createBiquadFilter(); f.type = o.type || 'lowpass'; f.Q.value = o.q || 0.8;
+    f.frequency.setValueAtTime(o.freq, t);
+    if (o.freqEnd) f.frequency.exponentialRampToValueAtTime(o.freqEnd, t + o.dur);
+    var g = actx.createGain();
+    g.gain.setValueAtTime(o.vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + o.dur);
+    src.connect(f); f.connect(g); g.connect(master);
+    src.start(t, Math.random() * 0.5); src.stop(t + o.dur + 0.05);
+  }
+  function tone(o) {
+    if (!actx) return;
+    var t = actx.currentTime + (o.delay || 0);
+    var osc = actx.createOscillator(); osc.type = o.wave || 'sine';
+    osc.frequency.setValueAtTime(o.freq, t);
+    if (o.freqEnd) osc.frequency.exponentialRampToValueAtTime(o.freqEnd, t + o.dur);
+    var g = actx.createGain();
+    g.gain.setValueAtTime(o.vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + o.dur);
+    osc.connect(g); g.connect(master);
+    osc.start(t); osc.stop(t + o.dur + 0.05);
+  }
+  var sfx = {
+    shot: function (w) {
+      noise({ freq: w.snd.hi, freqEnd: 250, dur: w.snd.len, vol: w.snd.vol });
+      tone({ freq: w.snd.lo, freqEnd: 40, dur: 0.14, vol: 0.7 });
+      noise({ freq: 600, freqEnd: 120, dur: w.snd.len * 2.2, vol: 0.25, delay: 0.03 }); // echo off the range
+    },
+    click:  function () { tone({ freq: 2400, dur: 0.02, vol: 0.18, wave: 'square' }); },
+    magOut: function () { noise({ type: 'bandpass', freq: 3200, q: 4, dur: 0.06, vol: 0.5 }); tone({ freq: 900, dur: 0.03, vol: 0.12, wave: 'triangle' }); },
+    magIn:  function () { noise({ type: 'bandpass', freq: 1700, q: 3, dur: 0.08, vol: 0.8 }); tone({ freq: 260, dur: 0.06, vol: 0.3, wave: 'triangle' }); },
+    rack:   function () {
+      noise({ type: 'bandpass', freq: 2600, q: 3, dur: 0.06, vol: 0.6 });
+      noise({ type: 'bandpass', freq: 2000, q: 3, dur: 0.07, vol: 0.7, delay: 0.12 });
+    },
+    shell:  function () { noise({ type: 'bandpass', freq: 2300, q: 5, dur: 0.05, vol: 0.5 }); },
+    ping:   function () { tone({ freq: 1650, dur: 0.7, vol: 0.22 }); tone({ freq: 2470, dur: 0.4, vol: 0.08 }); },
+    thud:   function () { noise({ freq: 500, dur: 0.12, vol: 0.35 }); },
+    thwip:  function () { noise({ type: 'highpass', freq: 2500, freqEnd: 6000, dur: 0.12, vol: 0.45 }); tone({ freq: 900, freqEnd: 2400, dur: 0.08, vol: 0.12, wave: 'triangle' }); },
+    thunk:  function () { tone({ freq: 220, freqEnd: 110, dur: 0.1, vol: 0.35 }); noise({ freq: 800, dur: 0.06, vol: 0.3 }); },
+    snip:   function () { noise({ type: 'bandpass', freq: 4200, q: 5, dur: 0.04, vol: 0.5 }); noise({ type: 'bandpass', freq: 3800, q: 5, dur: 0.04, vol: 0.5, delay: 0.07 }); },
+    knock:  function () {   // hollow wooden "tok"
+      noise({ type: 'bandpass', freq: 1100, q: 6, dur: 0.06, vol: 0.8 });
+      tone({ freq: 380, freqEnd: 300, dur: 0.09, vol: 0.35, wave: 'triangle' });
+    },
+    tink:   function () { tone({ freq: 3800, dur: 0.08, vol: 0.06, wave: 'triangle' }); },
+    boom:   function () {
+      noise({ freq: 1200, freqEnd: 60, dur: 1.6, vol: 1.0 });
+      tone({ freq: 80, freqEnd: 25, dur: 0.8, vol: 0.9 });
+    },
+    beep:   function () { tone({ freq: 880, dur: 0.07, vol: 0.12, wave: 'square' }); tone({ freq: 1320, dur: 0.07, vol: 0.1, wave: 'square', delay: 0.06 }); }
+  };
+
+  // =========================================================================
+  // 6. THE RANGE - static scenery. Static = mass 0 = never moves.
+  // Everything you can shoot goes in the `targets` list for raycasting.
+  // =========================================================================
+  var targets = [];  // meshes bullets can hit
+
+  function addStatic(w, h, d, x, y, z, colorOrMat, shootable) {
+    var mesh = boxMesh(w, h, d, colorOrMat);
+    mesh.position.set(x, y, z);
+    scene.add(mesh);
+    var body = new CANNON.Body({ mass: 0, collisionFilterMask: -1 });  // -1 = collide with every group
+    body.addShape(new CANNON.Box(new CANNON.Vec3(w / 2, h / 2, d / 2)));
+    body.position.set(x, y, z);
+    world.addBody(body);
+    if (shootable !== false) targets.push(mesh);
+    // Anything between knee and head height blocks walking. We only need its
+    // footprint (a rectangle on the floor) because you can't jump.
+    if (y + h / 2 > 0.3 && y - h / 2 < 1.8) {
+      solids.push({ x1: x - w / 2, x2: x + w / 2, z1: z - d / 2, z2: z + d / 2 });
+    }
+    return mesh;
+  }
+  var solids = [];
+
+  // Ground: sandy texture with faint noise
+  var groundTex = canvasTexture(256, 256, function (ctx, w, h) {
+    ctx.fillStyle = '#a3875c'; ctx.fillRect(0, 0, w, h);
+    for (var i = 0; i < 2600; i++) {
+      var s = Math.random() * 2 + 0.5, v = Math.floor(rand(120, 185));
+      ctx.fillStyle = 'rgba(' + v + ',' + Math.floor(v * 0.85) + ',' + Math.floor(v * 0.6) + ',0.5)';
+      ctx.fillRect(Math.random() * w, Math.random() * h, s, s);
+    }
+  }).tex;
+  groundTex.wrapS = groundTex.wrapT = THREE.RepeatWrapping;
+  groundTex.repeat.set(40, 40);
+  var ground = new THREE.Mesh(new THREE.PlaneBufferGeometry(140, 140),
+    new THREE.MeshLambertMaterial({ map: groundTex }));
+  ground.rotation.x = -Math.PI / 2;
+  scene.add(ground);
+  targets.push(ground);
+  var groundBody = new CANNON.Body({ mass: 0, collisionFilterMask: -1 });
+  groundBody.addShape(new CANNON.Plane());
+  groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+  world.addBody(groundBody);
+
+  // Distance lines + signs every 5 m
+  for (var dm = 5; dm <= 25; dm += 5) {
+    var line = boxMesh(11.6, 0.01, 0.06, 0xf4f1e8);
+    line.position.set(0, 0.006, -dm);
+    scene.add(line);
+    var sign = canvasTexture(128, 64, (function (n) {
+      return function (ctx, w, h) {
+        ctx.fillStyle = '#f4f1e8'; ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = '#1b2430'; ctx.font = 'bold 44px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(n + 'm', w / 2, 48);
+      };
+    })(dm)).tex;
+    var signMesh = new THREE.Mesh(new THREE.PlaneBufferGeometry(0.6, 0.3), new THREE.MeshBasicMaterial({ map: sign }));
+    signMesh.position.set(-5.85, 1.4, -dm);
+    signMesh.rotation.y = Math.PI / 2;
+    scene.add(signMesh);
+  }
+
+  // Side baffles, back berm, shooting bench, can table, plate posts
+  var wallMat = new THREE.MeshLambertMaterial({ color: 0x7d8a72 });
+  addStatic(0.4, 2.6, 26, -6.2, 1.3, -14, wallMat);
+  addStatic(0.4, 2.6, 26, 6.2, 1.3, -14, wallMat);
+  addStatic(13, 5, 2, 0, 2.5, -27.5, 0x6e5a42);
+  addStatic(1.7, 0.08, 0.6, 0, 0.92, -0.75, 0x7b5b3a);           // bench top
+  addStatic(1.6, 0.88, 0.5, 0, 0.44, -0.75, 0x4d3a26, false);    // bench base
+  addStatic(1.5, 0.8, 0.7, -1.6, 0.4, -5, 0x8a6a45);              // can table
+
+  var PLATE_SPOTS = [[-3.2, -12, 1.0], [-1.4, -15, 1.25], [0.6, -18, 1.45], [2.6, -14, 1.15]];
+  PLATE_SPOTS.forEach(function (p) {
+    addStatic(0.08, p[2], 0.08, p[0], p[2] / 2, p[1], 0x3b3f44);
+    addStatic(0.42, 0.04, 0.14, p[0], p[2] + 0.02, p[1], 0x3b3f44);
+  });
+
+  // ---- THE BACK ROOM: turn around from the bench and walk through the door ----
+  var roomWallMat = new THREE.MeshLambertMaterial({ color: 0x8b847a });
+  addStatic(8.4, 3.2, 0.2, 0, 1.6, 14.1, roomWallMat);           // back wall
+  addStatic(0.2, 3.2, 8.4, -4.1, 1.6, 10, roomWallMat);          // left wall
+  addStatic(0.2, 3.2, 8.4, 4.1, 1.6, 10, roomWallMat);           // right wall
+  addStatic(3.45, 3.2, 0.2, -2.475, 1.6, 5.9, roomWallMat);      // front wall, left of the door
+  addStatic(3.45, 3.2, 0.2, 2.475, 1.6, 5.9, roomWallMat);       // front wall, right of the door
+  addStatic(1.5, 0.9, 0.2, 0, 2.75, 5.9, roomWallMat);           // above the door (too high to block you)
+  addStatic(8.4, 0.2, 8.4, 0, 3.3, 10, 0x5f5a54);                // ceiling (great for webbing!)
+  var roomFloor = new THREE.Mesh(new THREE.PlaneBufferGeometry(8, 8), mat(0x4e463f));
+  roomFloor.rotation.x = -Math.PI / 2;
+  roomFloor.position.set(0, 0.004, 10);
+  scene.add(roomFloor);
+  targets.push(roomFloor);
+  var lamp = new THREE.Mesh(boxGeo(0.9, 0.05, 0.3), new THREE.MeshBasicMaterial({ color: 0xfff4d6 }));
+  lamp.position.set(0, 3.17, 10);
+  scene.add(lamp);
+  var doorSign = canvasTexture(256, 64, function (ctx, w, h) {
+    ctx.fillStyle = '#1b2430'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#ffb52e'; ctx.font = 'bold 36px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('BACK ROOM', w / 2, 45);
+  }).tex;
+  var doorSignMesh = new THREE.Mesh(new THREE.PlaneBufferGeometry(1.2, 0.3), new THREE.MeshBasicMaterial({ map: doorSign }));
+  doorSignMesh.position.set(0, 2.55, 5.79);
+  doorSignMesh.rotation.y = Math.PI;     // face the range
+  scene.add(doorSignMesh);
+
+
+  // =========================================================================
+  // 7. PROPS - things with physics that you can shoot around.
+  // A "prop" = { type, body (physics), mesh (visuals) }.
+  // =========================================================================
+  var props = [];
+
+  function addProp(type, body, mesh, opts) {
+    opts = opts || {};
+    var p = { type: type, body: body, mesh: mesh, dead: false, born: gameTime };
+    body.collisionFilterMask = -1;   // props collide with everything, ragdolls included
+    world.addBody(body);
+    scene.add(mesh);
+    mesh.traverse(function (o) {
+      if (o.isMesh && !o.userData.decal) { o.userData.prop = p; targets.push(o); }
+    });
+    if (opts.sleep) body.sleep();   // start asleep so stacks don't wobble
+    props.push(p);
+    syncProp(p);
+    enforceCaps();
+    return p;
+  }
+  function removeProp(p) {
+    if (p.removed) return;
+    p.removed = true;
+    world.remove(p.body);
+    scene.remove(p.mesh);
+    var meshes = [];
+    p.mesh.traverse(function (o) { if (o.isMesh) meshes.push(o); });
+    targets = targets.filter(function (t) { return meshes.indexOf(t) === -1; });
+    props.splice(props.indexOf(p), 1);
+    bodyGone(p.body);
+  }
+  function enforceCaps() {
+    var mags = props.filter(function (p) { return p.type === 'mag'; });
+    while (mags.length > MAX_MAGS) removeProp(mags.shift());
+    var others = props.filter(function (p) { return p.type !== 'mag'; });
+    while (others.length > MAX_PROPS) removeProp(others.shift()); // oldest goes first
+  }
+  function syncProp(p) {
+    // cannon's Vec3/Quaternion have x,y,z(,w) just like three's, so .copy() works across libraries
+    p.mesh.position.copy(p.body.position);
+    p.mesh.quaternion.copy(p.body.quaternion);
+  }
+
+  // ---- textures for props ----
+  var crateTex = canvasTexture(128, 128, function (ctx, w, h) {
+    ctx.fillStyle = '#a8763f'; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#7a5129'; ctx.lineWidth = 3;
+    for (var y = 0; y < h; y += 21) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+    ctx.lineWidth = 12; ctx.strokeStyle = '#6b4520'; ctx.strokeRect(6, 6, w - 12, h - 12);
+    ctx.beginPath(); ctx.moveTo(10, 10); ctx.lineTo(w - 10, h - 10); ctx.stroke();
+  }).tex;
+  var crateMat = new THREE.MeshLambertMaterial({ map: crateTex });
+
+  var plateTex = canvasTexture(128, 128, function (ctx, w, h) {
+    ctx.fillStyle = '#c8ced6'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#d6332b'; ctx.beginPath(); ctx.arc(w / 2, h / 2, 44, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#f4f1e8'; ctx.beginPath(); ctx.arc(w / 2, h / 2, 28, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#d6332b'; ctx.beginPath(); ctx.arc(w / 2, h / 2, 12, 0, Math.PI * 2); ctx.fill();
+  }).tex;
+  var plateFront = new THREE.MeshLambertMaterial({ map: plateTex });
+
+  var dummyTex = canvasTexture(128, 256, function (ctx, w, h) {
+    ctx.fillStyle = '#e9e2cf'; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#1b2430'; ctx.lineWidth = 4;
+    [100, 75, 50, 25].forEach(function (r) { ctx.beginPath(); ctx.ellipse(w / 2, h * 0.42, r * 0.55, r, 0, 0, Math.PI * 2); ctx.stroke(); });
+    ctx.fillStyle = '#d6332b'; ctx.beginPath(); ctx.ellipse(w / 2, h * 0.42, 9, 16, 0, 0, Math.PI * 2); ctx.fill();
+  }).tex;
+  var dummyFront = new THREE.MeshLambertMaterial({ map: dummyTex });
+
+  var barrelTex = canvasTexture(256, 128, function (ctx, w, h) {
+    ctx.fillStyle = '#c6271f'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#8f1a14'; ctx.fillRect(0, 18, w, 8); ctx.fillRect(0, h - 26, w, 8);
+    ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.moveTo(64, 40); ctx.lineTo(92, 88); ctx.lineTo(36, 88); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#1b1b1b'; ctx.font = 'bold 36px sans-serif'; ctx.fillText('!', 58, 82);
+    ctx.font = 'bold 26px sans-serif'; ctx.fillStyle = '#ffd23f'; ctx.fillText('BOOM', 120, 76);
+  }).tex;
+  var barrelMat = new THREE.MeshLambertMaterial({ map: barrelTex });
+  var barrelGeo = new THREE.CylinderBufferGeometry(0.3, 0.3, 0.9, 14);
+  var canGeo = new THREE.CylinderBufferGeometry(0.065, 0.065, 0.22, 10);
+  var CAN_COLORS = [0xd6332b, 0x2b8ad6, 0x2fae5b, 0xf0b429, 0xe8e8e8];
+
+  // ---- prop factories ----
+  function makeCrate(x, y, z, sleep) {
+    var body = new CANNON.Body({ mass: 4 });
+    body.addShape(new CANNON.Box(new CANNON.Vec3(0.25, 0.25, 0.25)));
+    body.position.set(x, y, z);
+    body.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), rand(-0.2, 0.2));
+    return addProp('crate', body, new THREE.Mesh(boxGeo(0.5, 0.5, 0.5), crateMat), { sleep: sleep });
+  }
+  function makeCan(x, y, z, sleep) {
+    var body = new CANNON.Body({ mass: 0.35 });
+    body.addShape(new CANNON.Box(new CANNON.Vec3(0.065, 0.11, 0.065)));
+    body.position.set(x, y, z);
+    body.angularDamping = 0.3;
+    var mesh = new THREE.Mesh(canGeo, mat(CAN_COLORS[Math.floor(Math.random() * CAN_COLORS.length)]));
+    return addProp('can', body, mesh, { sleep: sleep });
+  }
+  function makeCanPyramid(x, groundY, z) {
+    var rows = [3, 2, 1];
+    rows.forEach(function (count, row) {
+      for (var i = 0; i < count; i++) {
+        makeCan(x + (i - (count - 1) / 2) * 0.15, groundY + 0.11 + row * 0.221, z, true);
+      }
+    });
+  }
+  // A dummy is ONE physics body made of three boxes (legs, torso, head).
+  // Its centre of mass is in the chest, so it's top-heavy and topples nicely.
+  function makeDummy(x, z) {
+    var body = new CANNON.Body({ mass: 22 });
+    body.addShape(new CANNON.Box(new CANNON.Vec3(0.22, 0.45, 0.13)), new CANNON.Vec3(0, 0, 0));
+    body.addShape(new CANNON.Box(new CANNON.Vec3(0.18, 0.4, 0.12)), new CANNON.Vec3(0, -0.85, 0));
+    body.addShape(new CANNON.Box(new CANNON.Vec3(0.12, 0.13, 0.12)), new CANNON.Vec3(0, 0.6, 0));
+    body.position.set(x, 1.26, z);
+    var g = new THREE.Group();
+    var side = mat(0xd8cfb8);
+    var torso = new THREE.Mesh(boxGeo(0.44, 0.9, 0.26), [side, side, side, side, dummyFront, side]);
+    var legs = boxMesh(0.36, 0.8, 0.24, 0x3c4a5c); legs.position.y = -0.85;
+    var head = boxMesh(0.24, 0.26, 0.24, 0xe0c9a0); head.position.y = 0.6;
+    head.userData.part = 'head';
+    g.add(torso); g.add(legs); g.add(head);
+    return addProp('dummy', body, g, { sleep: true });
+  }
+  function makeBarrel(x, y, z, sleep) {
+    var body = new CANNON.Body({ mass: 15 });
+    body.addShape(new CANNON.Box(new CANNON.Vec3(0.28, 0.45, 0.28)));
+    body.position.set(x, y, z);
+    var top = mat(0x8f1a14);
+    var mesh = new THREE.Mesh(barrelGeo, [barrelMat, top, top]);
+    return addProp('barrel', body, mesh, { sleep: sleep });
+  }
+  function makePlate(x, z, h) {
+    var body = new CANNON.Body({ mass: 1.2 });
+    body.addShape(new CANNON.Box(new CANNON.Vec3(0.16, 0.16, 0.015)));
+    body.position.set(x, h + 0.04 + 0.16, z);
+    var steel = mat(0xb9c0c8);
+    var mesh = new THREE.Mesh(boxGeo(0.32, 0.32, 0.03), [steel, steel, steel, steel, plateFront, steel]);
+    return addProp('plate', body, mesh, { sleep: true });
+  }
+
+  // Furniture: one physics body built from several boxes (like the dummy), so you can
+  // shoot it, web it, tie it up or throw it.
+  function compound(mass, x, y, z, pieces, material) {
+    var body = new CANNON.Body({ mass: mass });
+    var g = new THREE.Group();
+    pieces.forEach(function (pc) {   // pc = [width, height, depth, offsetX, offsetY, offsetZ]
+      body.addShape(new CANNON.Box(new CANNON.Vec3(pc[0] / 2, pc[1] / 2, pc[2] / 2)), new CANNON.Vec3(pc[3], pc[4], pc[5]));
+      var m = new THREE.Mesh(boxGeo(pc[0], pc[1], pc[2]), material);
+      m.position.set(pc[3], pc[4], pc[5]);
+      g.add(m);
+    });
+    body.position.set(x, y, z);
+    return addProp('furniture', body, g, { sleep: true });
+  }
+  var tableWood = mat(0x6e4a2c), chairWood = mat(0x8a5a33);
+  function makeTable(x, z) {
+    var L = 0.06;   // leg thickness
+    return compound(25, x, 0.38, z, [
+      [1.3, 0.05, 0.8, 0, 0.355, 0],                                   // top (surface at 0.76 m)
+      [L, 0.71, L, -0.58, -0.02, -0.33], [L, 0.71, L, 0.58, -0.02, -0.33],
+      [L, 0.71, L, -0.58, -0.02, 0.33], [L, 0.71, L, 0.58, -0.02, 0.33]
+    ], tableWood);
+  }
+  function makeChair(x, z) {
+    var L = 0.045;
+    return compound(6, x, 0.45, z, [
+      [0.46, 0.05, 0.46, 0, 0, 0],                                     // seat (top at 0.475 m)
+      [0.46, 0.5, 0.04, 0, 0.27, 0.21],                                // backrest
+      [L, 0.43, L, -0.19, -0.235, -0.19], [L, 0.43, L, 0.19, -0.235, -0.19],
+      [L, 0.43, L, -0.19, -0.235, 0.19], [L, 0.43, L, 0.19, -0.235, 0.19]
+    ], chairWood);
+  }
+
+  function buildDefaultLayout() {
+    makeCanPyramid(-1.6, 0.8, -5);
+    makeCrate(2.0, 0.25, -8, true); makeCrate(2.55, 0.25, -8.1, true); makeCrate(2.25, 0.75, -8.05, true);
+    makeBarrel(3.1, 0.46, -9.4, true);
+    makeBarrel(-3.6, 0.46, -10.5, true);
+    makeDummy(-0.5, -9); makeDummy(1.2, -13);
+    PLATE_SPOTS.forEach(function (p) { makePlate(p[0], p[1], p[2]); });
+    makeNpc(-2.5, -11); makeNpc(1.5, -16); makeNpc(3.5, -7);
+    // back room: a table, a chair, and someone sitting at it, facing the door
+    makeTable(0, 9.95);
+    makeChair(0, 10.8);
+    makeNpc(0, 10.75, { sit: true, heading: Math.PI });
+  }
+  function resetRange() {
+    cutAllWebs();
+    player.vel.set(0, 0, 0); player.airborne = false;
+    props.slice().forEach(removeProp);
+    npcs.slice().forEach(removeNpc);
+    decals.slice().forEach(function (d) { if (d.parent) d.parent.remove(d); });
+    decals.length = 0;
+    state.stats = { shots: 0, hits: 0, heads: 0, booms: 0 };
+    rig.position.set(0, PLAYER_HEIGHT, 0);   // RESET also walks you back to the bench
+    buildDefaultLayout();
+    drawScoreboard();
+  }
+
+  // Spawn-board actions: things fall from the sky into the range
+  var SPAWN = {
+    crate:  function () { makeCrate(rand(-3, 3), rand(3, 5), rand(-6, -13)); },
+    tower:  function () {
+      var x = rand(-2.5, 2.5), z = rand(-7, -12);
+      for (var i = 0; i < 6; i++) makeCrate(x + rand(-0.02, 0.02), 0.25 + i * 0.5, z, true);
+    },
+    cans:   function () { makeCanPyramid(rand(-3, 3), 0, rand(-5, -10)); },
+    dummy:  function () { makeDummy(rand(-3.5, 3.5), rand(-7, -16)); },
+    barrel: function () { makeBarrel(rand(-3.5, 3.5), rand(2, 4), rand(-6, -14)); }
+  };
+
+  // =========================================================================
+  // 7b. NPCs - wooden mannequins that wander around, get hurt, and RAGDOLL.
+  //
+  // Each mannequin is 10 parts: head, torso, 2 upper arms, 2 forearms (with hands),
+  // 2 thighs, 2 shins (with feet). Every part is ONE mesh built by gluing simple
+  // shapes together (spheres for joints, tapered cylinders for limbs).
+  //
+  // Two modes:
+  //   ALIVE   - we animate the joints ourselves (walk cycle, limp, clutching an arm).
+  //             One invisible "kinematic" box goes with it so it can shove crates.
+  //   RAGDOLL - every part becomes a real physics body, joined by joints that only
+  //             bend so far. Physics takes over: flop!
+  //
+  // Damage: head = down instantly, torso = 4 pistol shots, leg = limp, arm = they
+  // clutch it with the other hand. When they get back up after going down, they're
+  // "repaired" (they're mannequins, after all).
+  // =========================================================================
+  var MAX_NPCS = 5;           // each ragdoll = 10 physics bodies, so keep this low on the Go
+  // Collision groups are bit flags. A pair collides only if each one's group is in the
+  // other's mask. Everything else is group 1 with mask -1 (all bits = "hit anything").
+  // Ragdoll parts are group 2 with mask 1: they hit the world and props, but NOT each
+  // other, which stops limbs jittering against the torso they're glued to.
+  var NPC_GROUP = 2;
+  var npcs = [];
+
+  var DAMAGE = { pistol: 25, rifle: 30, shotgun: 14 };          // per bullet / per pellet
+  var LIMB_MULT = { head: 4, torso: 1, armL: 0.6, armR: 0.6, legL: 0.7, legR: 0.7 };
+  var NPC_POPS = ['OOF', 'BONK', 'TIMBER!', 'YEET', 'SPLINTERS'];
+
+  // ---- wood look ----
+  function woodMaterial(base, grain) {
+    var t = canvasTexture(128, 128, function (ctx, w, h) {
+      ctx.fillStyle = base; ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = grain; ctx.lineWidth = 1.5;
+      for (var i = 0; i < 26; i++) {           // wavy grain lines running along the limb
+        var x0 = Math.random() * w, wob = rand(1, 4), f = rand(0.03, 0.08);
+        ctx.beginPath();
+        for (var y = 0; y <= h; y += 4) ctx.lineTo(x0 + Math.sin(y * f) * wob, y);
+        ctx.stroke();
+      }
+    }).tex;
+    return new THREE.MeshLambertMaterial({ map: t });
+  }
+  var WOODS = [
+    woodMaterial('#c98d55', 'rgba(120,70,30,0.35)'),   // classic orange pine
+    woodMaterial('#dcb07a', 'rgba(140,95,50,0.3)'),    // light birch
+    woodMaterial('#9a6033', 'rgba(60,30,10,0.35)')     // dark walnut
+  ];
+
+  // ---- geometry: glue shapes into one mesh per part ----
+  // Fewer meshes = fewer "draw calls" (each one is a separate job for the GPU).
+  // 5 shapes merged into 1 mesh is ~5x cheaper to draw, which matters a LOT on the Go.
+  function mergeShapes(list) {
+    var pos = [], nor = [], uv = [], idx = [], offset = 0;
+    var m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+    list.forEach(function (it) {
+      var g = it.geo.clone();
+      e.set(it.r ? it.r[0] : 0, 0, 0);
+      m.compose(new THREE.Vector3(it.p[0], it.p[1], it.p[2]), q.setFromEuler(e),
+        new THREE.Vector3(it.s ? it.s[0] : 1, it.s ? it.s[1] : 1, it.s ? it.s[2] : 1));
+      g.applyMatrix4(m);
+      var a = g.attributes;
+      for (var i = 0; i < a.position.count; i++) {
+        pos.push(a.position.getX(i), a.position.getY(i), a.position.getZ(i));
+        nor.push(a.normal.getX(i), a.normal.getY(i), a.normal.getZ(i));
+        uv.push(a.uv.getX(i), a.uv.getY(i));
+      }
+      if (g.index) for (var j = 0; j < g.index.count; j++) idx.push(g.index.getX(j) + offset);
+      else for (var k = 0; k < a.position.count; k++) idx.push(k + offset);
+      offset += a.position.count;
+      g.dispose();
+    });
+    var out = new THREE.BufferGeometry();
+    out.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    out.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    out.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    out.setIndex(idx);
+    out.computeBoundingSphere();
+    return out;
+  }
+  var BALL = new THREE.SphereBufferGeometry(1, 12, 9);
+  function taper(rTop, rBottom, h) { return new THREE.CylinderBufferGeometry(rTop, rBottom, h, 10); }
+
+  // Each part's origin = its middle (that's where its physics box will be centred).
+  // Heights from the floor: hips 0.90, shoulders 1.42, neck 1.48, top of head ~1.85.
+  var NPC_GEO = {
+    torso: mergeShapes([
+      { geo: taper(0.2, 0.135, 0.36), p: [0, 0.1, 0], s: [1, 1, 0.6] },     // chest: wide at the shoulders
+      { geo: BALL, p: [0, -0.1, 0], s: [0.095, 0.075, 0.075] },             // waist joint
+      { geo: taper(0.13, 0.165, 0.18), p: [0, -0.2, 0], s: [1, 1, 0.68] }   // hip block
+    ]),
+    head: mergeShapes([
+      { geo: taper(0.045, 0.05, 0.1), p: [0, -0.13, 0] },                   // neck
+      { geo: BALL, p: [0, 0.03, 0.005], s: [0.115, 0.15, 0.125] }           // egg-shaped head
+    ]),
+    upperArm: mergeShapes([
+      { geo: BALL, p: [0, 0.14, 0], s: [0.06, 0.06, 0.06] },                // shoulder joint
+      { geo: taper(0.048, 0.04, 0.27), p: [0, 0, 0] }
+    ]),
+    forearm: mergeShapes([
+      { geo: BALL, p: [0, 0.17, 0], s: [0.042, 0.042, 0.042] },             // elbow joint
+      { geo: taper(0.04, 0.032, 0.24), p: [0, 0.04, 0] },
+      { geo: BALL, p: [0, -0.14, 0.005], s: [0.03, 0.075, 0.05] }           // mitten hand
+    ]),
+    thigh: mergeShapes([
+      { geo: BALL, p: [0, 0.2, 0], s: [0.068, 0.068, 0.068] },              // hip joint
+      { geo: taper(0.068, 0.05, 0.4), p: [0, -0.01, 0] }
+    ]),
+    shin: mergeShapes([
+      { geo: BALL, p: [0, 0.22, 0], s: [0.052, 0.052, 0.052] },             // knee joint
+      { geo: taper(0.05, 0.038, 0.36), p: [0, 0.02, 0] },
+      { geo: BALL, p: [0, -0.205, 0.045], s: [0.05, 0.035, 0.11] }          // foot
+    ])
+  };
+
+  // name: geometry, physics box size, mass, which part it hangs off, joint position
+  // on that parent (jA) and on itself (jB), and how far the joint can bend.
+  var NPC_PARTS = {
+    torso:     { geo: 'torso',    size: [0.36, 0.6, 0.24],  mass: 18 },
+    head:      { geo: 'head',     size: [0.24, 0.38, 0.26], mass: 4,   parent: 'torso',     jA: [0, 0.29, 0],       jB: [0, -0.18, 0], axis: 1,  angle: 0.2, twist: 0.17 },
+    upperArmL: { geo: 'upperArm', size: [0.1, 0.32, 0.1],   mass: 2.5, parent: 'torso',     jA: [0.215, 0.23, 0],   jB: [0, 0.15, 0],  axis: -1, angle: 0.6, twist: 0.17 },
+    upperArmR: { geo: 'upperArm', size: [0.1, 0.32, 0.1],   mass: 2.5, parent: 'torso',     jA: [-0.215, 0.23, 0],  jB: [0, 0.15, 0],  axis: -1, angle: 0.6, twist: 0.17 },
+    forearmL:  { geo: 'forearm',  size: [0.08, 0.4, 0.1],   mass: 2,   parent: 'upperArmL', jA: [0, -0.15, 0],      jB: [0, 0.17, 0],  axis: -1, angle: 0.5, twist: 0.1 },
+    forearmR:  { geo: 'forearm',  size: [0.08, 0.4, 0.1],   mass: 2,   parent: 'upperArmR', jA: [0, -0.15, 0],      jB: [0, 0.17, 0],  axis: -1, angle: 0.5, twist: 0.1 },
+    thighL:    { geo: 'thigh',    size: [0.13, 0.44, 0.13], mass: 6,   parent: 'torso',     jA: [0.09, -0.29, 0],   jB: [0, 0.21, 0],  axis: -1, angle: 0.33, twist: 0.1 },
+    thighR:    { geo: 'thigh',    size: [0.13, 0.44, 0.13], mass: 6,   parent: 'torso',     jA: [-0.09, -0.29, 0],  jB: [0, 0.21, 0],  axis: -1, angle: 0.33, twist: 0.1 },
+    shinL:     { geo: 'shin',     size: [0.11, 0.48, 0.22], mass: 4,   parent: 'thighL',    jA: [0, -0.21, 0],      jB: [0, 0.22, 0],  axis: -1, angle: 0.33, twist: 0.08 },
+    shinR:     { geo: 'shin',     size: [0.11, 0.48, 0.22], mass: 4,   parent: 'thighR',    jA: [0, -0.21, 0],      jB: [0, 0.22, 0],  axis: -1, angle: 0.33, twist: 0.08 }
+  };   // angle/twist are fractions of 180 degrees
+  var PART_NAMES = Object.keys(NPC_PARTS);
+  // When ragdolling, pull hands/feet out of the model first, then work inwards.
+  var DETACH_ORDER = ['forearmL', 'forearmR', 'shinL', 'shinR', 'head', 'upperArmL', 'upperArmR', 'thighL', 'thighR', 'torso'];
+
+  function buildNpcModel() {
+    var root = new THREE.Group();
+    root.rotation.order = 'YXZ';      // turn (Y) first, then tilt (X: getting up, Z: limping)
+    var wood = pick(WOODS);
+    var parts = {};
+    // A "pivot" is an empty object sitting exactly on a joint. Rotate the pivot and the
+    // limb swings around the joint instead of around its own middle.
+    function part(name, parentObj, pivotPos, homePos) {
+      var mesh = new THREE.Mesh(NPC_GEO[NPC_PARTS[name].geo], wood);
+      var pivot = null;
+      if (pivotPos) {
+        pivot = new THREE.Group();
+        pivot.position.set(pivotPos[0], pivotPos[1], pivotPos[2]);
+        parentObj.add(pivot);
+        pivot.add(mesh);
+      } else parentObj.add(mesh);
+      mesh.position.set(homePos[0], homePos[1], homePos[2]);
+      parts[name] = { mesh: mesh, pivot: pivot, home: mesh.position.clone(), body: null };
+      return mesh;
+    }
+    var torso = part('torso', root, null, [0, 1.19, 0]);
+    part('head', torso, [0, 0.29, 0], [0, 0.18, 0]);
+    var uaL = part('upperArmL', torso, [0.215, 0.23, 0], [0, -0.15, 0]);   // they face +Z, so their LEFT is +X
+    var uaR = part('upperArmR', torso, [-0.215, 0.23, 0], [0, -0.15, 0]);
+    part('forearmL', uaL, [0, -0.15, 0], [0, -0.17, 0]);
+    part('forearmR', uaR, [0, -0.15, 0], [0, -0.17, 0]);
+    var thL = part('thighL', root, [0.09, 0.9, 0], [0, -0.21, 0]);
+    var thR = part('thighR', root, [-0.09, 0.9, 0], [0, -0.21, 0]);
+    part('shinL', thL, [0, -0.21, 0], [0, -0.22, 0]);
+    part('shinR', thR, [0, -0.21, 0], [0, -0.22, 0]);
+    return { root: root, parts: parts };
+  }
+
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  // Where NPCs are allowed to wander: the range, or the back room
+  var RANGE_BOUNDS = { x1: -5.6, x2: 5.6, z1: -25.5, z2: -1.6 };
+  var ROOM_BOUNDS = { x1: -3.4, x2: 3.4, z1: 6.6, z2: 13.4 };
+  function boundsAt(z) { return z > 5.9 ? ROOM_BOUNDS : RANGE_BOUNDS; }
+
+  function makeNpc(x, z, opts) {
+    opts = opts || {};
+    var model = buildNpcModel();
+    var npc = {
+      root: model.root, parts: model.parts,
+      x: x, z: z, heading: opts.heading !== undefined ? opts.heading : rand(-Math.PI, Math.PI), speed: 0,
+      bounds: boundsAt(z), sitting: !!opts.sit, crawling: false, bodyIn: false,
+      vel: new THREE.Vector3(), phase: Math.random() * 10,
+      target: null, idleT: rand(0.2, 1.5), panicT: 0, riseT: 0, flinchT: 0,
+      hp: 100, wounds: { armL: false, armR: false, legL: false, legR: false }, downed: false,
+      ragdoll: false, joints: [], lastHit: 0, stillT: 0, removed: false,
+      walkSpeed: rand(0.9, 1.3)
+    };
+    // The invisible kinematic box: moved by our code, but still pushes physics objects
+    npc.body = new CANNON.Body({ mass: 0, type: CANNON.Body.KINEMATIC, collisionFilterMask: -1 });
+    npc.body.addShape(new CANNON.Box(new CANNON.Vec3(0.22, 0.9, 0.15)));
+    if (!npc.sitting) npcBodyOn(npc, true);   // sitting = no box, or it would shove the chair away
+    scene.add(npc.root);
+    PART_NAMES.forEach(function (n) {
+      var m = npc.parts[n].mesh;
+      m.userData.npc = npc; m.userData.npcPart = n;
+      targets.push(m);
+    });
+    npcs.push(npc);
+    while (npcs.length > MAX_NPCS) removeNpc(npcs[0]);
+    placeNpc(npc);
+    return npc;
+  }
+
+  function removeNpc(npc) {
+    if (npc.removed) return;
+    npc.removed = true;
+    clearRagdoll(npc);
+    npcBodyOn(npc, false);
+    scene.remove(npc.root);
+    var meshes = PART_NAMES.map(function (n) { return npc.parts[n].mesh; });
+    meshes.forEach(function (m) { if (m.parent) m.parent.remove(m); });
+    targets = targets.filter(function (t) { return meshes.indexOf(t) === -1; });
+    npcs.splice(npcs.indexOf(npc), 1);
+  }
+
+  function npcBodyOn(npc, on) {
+    if (on && !npc.bodyIn) { world.addBody(npc.body); npc.bodyIn = true; }
+    if (!on && npc.bodyIn) { world.remove(npc.body); npc.bodyIn = false; }
+  }
+  var crawlE = new THREE.Euler(0, 0, 0, 'YXZ'), crawlQ = new THREE.Quaternion();
+  function placeNpc(npc) {
+    npc.root.position.set(npc.x, 0, npc.z);
+    npc.root.rotation.y = npc.heading;
+    if (npc.crawling) {   // lying down: the invisible box lies flat, ahead of the feet
+      npc.body.position.set(npc.x + Math.sin(npc.heading) * 0.85, 0.25, npc.z + Math.cos(npc.heading) * 0.85);
+      crawlQ.setFromEuler(crawlE.set(1.25, npc.heading, 0));
+      npc.body.quaternion.set(crawlQ.x, crawlQ.y, crawlQ.z, crawlQ.w);
+    } else {
+      npc.body.position.set(npc.x, 0.9, npc.z);
+      npc.body.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), npc.heading);
+    }
+    npc.body.velocity.set(npc.vel.x, 0, npc.vel.z);
+  }
+
+  function newWanderTarget(npc) {
+    var b = npc.bounds;
+    npc.target = new THREE.Vector2(rand(b.x1 + 0.4, b.x2 - 0.4), rand(b.z1 + 0.4, b.z2 - 0.4));
+  }
+  function angleDiff(a, b) {   // shortest way to turn from a to b (handles the -180/180 wrap)
+    var d = b - a;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    return d;
+  }
+  function fleeFrom(npc, px, pz) {
+    if (npc.sitting) standUp(npc);
+    var dx = npc.x - px, dz = npc.z - pz, d = Math.sqrt(dx * dx + dz * dz) || 1, b = npc.bounds;
+    npc.panicT = rand(2.5, 4);
+    npc.idleT = 0;
+    npc.target = new THREE.Vector2(clamp(npc.x + dx / d * 7, b.x1 + 0.4, b.x2 - 0.4), clamp(npc.z + dz / d * 7, b.z1 + 0.4, b.z2 - 0.4));
+  }
+
+  // ---- SITTING (the back-room mannequin waits at the table) ----
+  function poseSitting(npc) {
+    var p = npc.parts;
+    placeNpc(npc);
+    npc.root.position.y = -0.38;           // drop the hips onto the seat
+    npc.root.rotation.x = 0; npc.root.rotation.z = 0;
+    p.thighL.pivot.rotation.set(-1.5, 0, 0); p.thighR.pivot.rotation.set(-1.5, 0, 0);   // thighs forward
+    p.shinL.pivot.rotation.set(1.5, 0, 0); p.shinR.pivot.rotation.set(1.5, 0, 0);       // shins down
+    p.upperArmL.pivot.rotation.set(-0.5, 0, 0.05); p.upperArmR.pivot.rotation.set(-0.5, 0, -0.05);
+    p.forearmL.pivot.rotation.set(-1.07, 0, 0); p.forearmR.pivot.rotation.set(-1.07, 0, 0);  // arms on the table
+    p.head.pivot.rotation.set(0, Math.sin(gameTime * 0.4) * 0.35, 0);                   // idly looks around
+    p.torso.mesh.rotation.x = 0;
+  }
+  function standUp(npc) {
+    npc.sitting = false;
+    npc.x += npc.x <= 0 ? 0.6 : -0.6;      // step out sideways from the chair
+    npc.root.position.y = 0;
+    ['thighL', 'thighR', 'shinL', 'shinR'].forEach(function (n) { npc.parts[n].pivot.rotation.set(0, 0, 0); });
+    placeNpc(npc);
+    npcBodyOn(npc, true);
+  }
+
+  // ---- CRAWLING (both legs shot): drag themselves along with their arms ----
+  function moveNpc(npc, dt) {
+    npc.vel.set(Math.sin(npc.heading) * npc.speed, 0, Math.cos(npc.heading) * npc.speed);
+    var nx = npc.x + npc.vel.x * dt, nz = npc.z + npc.vel.z * dt;
+    var fixed = collide(nx, nz, 0.3);
+    if (Math.abs(fixed.x - nx) + Math.abs(fixed.z - nz) > 0.001 && npc.target) { npc.target = null; npc.idleT = 0.3; }
+    var b = npc.bounds;
+    npc.x = clamp(fixed.x, b.x1, b.x2); npc.z = clamp(fixed.z, b.z1, b.z2);
+  }
+  function updateCrawl(npc, dt) {
+    var p = npc.parts, w = npc.wounds;
+    if (npc.panicT > 0) npc.panicT -= dt;
+    var want = 0;
+    if (npc.idleT > 0) {
+      npc.idleT -= dt;
+      if (npc.idleT <= 0) newWanderTarget(npc);
+    } else if (npc.target) {
+      var dx = npc.target.x - npc.x, dz = npc.target.y - npc.z;
+      if (Math.sqrt(dx * dx + dz * dz) < 0.5) { npc.target = null; npc.idleT = rand(1.5, 4); }
+      else {
+        npc.heading += clamp(angleDiff(npc.heading, Math.atan2(dx, dz)), -1.5 * dt, 1.5 * dt);
+        want = npc.panicT > 0 ? 0.55 : 0.28;
+      }
+    }
+    // moves in surges: quick while an arm drags, slow while it reaches forward again
+    var surge = Math.max(0, -Math.cos(npc.phase * 2));
+    npc.speed += (want * (0.3 + surge * 1.4) - npc.speed) * Math.min(1, dt * 6);
+    moveNpc(npc, dt);
+    placeNpc(npc);
+    npc.root.position.y = 0.06;
+    npc.root.rotation.x = 1.25;            // tipped forward onto the ground, chest propped up
+    npc.root.rotation.z = 0;
+    npc.phase += dt * (want > 0 ? 3.2 : 0.8);
+    ['L', 'R'].forEach(function (side, i) {
+      var sh = p['upperArm' + side].pivot, el = p['forearm' + side].pivot;
+      if (w['arm' + side]) { sh.rotation.set(-1.6, 0, 0); el.rotation.set(-0.1, 0, 0); return; }   // hurt arm drags
+      var t = Math.sin(npc.phase + i * Math.PI);          // arms take turns
+      var reach = want > 0 ? 1 : 0.25;
+      sh.rotation.set(-2.3 - t * 0.6 * reach, 0, (side === 'L' ? 1 : -1) * 0.15);   // reach out ... pull back
+      el.rotation.set(-0.2 - Math.max(0, -t) * 0.6 * reach, 0, 0);
+    });
+    p.thighL.pivot.rotation.set(Math.sin(npc.phase) * 0.06, 0, 0.05);
+    p.thighR.pivot.rotation.set(-Math.sin(npc.phase) * 0.06, 0, -0.05);
+    p.shinL.pivot.rotation.set(0.1, 0, 0); p.shinR.pivot.rotation.set(0.1, 0, 0);
+    p.head.pivot.rotation.set(-0.5, Math.sin(npc.phase * 0.5) * 0.2, 0);             // head up, looking ahead
+    p.torso.mesh.rotation.x = 0;
+  }
+
+  // ---- 2-BONE IK: put a hand exactly on a target point ----
+  // Given shoulder position, target and bone lengths, the law of cosines tells us
+  // the shoulder and elbow angles. `pole` = roughly which way the elbow should point.
+  // All in the torso's local space.
+  var L_UPPER = 0.30, L_FORE = 0.31, X_AXIS = new THREE.Vector3(1, 0, 0);
+  var ikD = new THREE.Vector3(), ikP = new THREE.Vector3(), ikU = new THREE.Vector3(), ikF = new THREE.Vector3();
+  var ikX = new THREE.Vector3(), ikY = new THREE.Vector3(), ikZ = new THREE.Vector3(), ikM = new THREE.Matrix4();
+  function solveArmIK(shoulder, target, pole, outShoulderQ, outElbowQ) {
+    ikD.copy(target).sub(shoulder);
+    var dist = clamp(ikD.length(), 0.05, L_UPPER + L_FORE - 0.001);
+    ikD.normalize();
+    var a1 = Math.acos(clamp((L_UPPER * L_UPPER + dist * dist - L_FORE * L_FORE) / (2 * L_UPPER * dist), -1, 1));
+    var a2 = Math.acos(clamp((L_UPPER * L_UPPER + L_FORE * L_FORE - dist * dist) / (2 * L_UPPER * L_FORE), -1, 1));
+    ikP.copy(pole).addScaledVector(ikD, -pole.dot(ikD)).normalize();      // pole, made square to the reach line
+    ikU.copy(ikD).multiplyScalar(Math.cos(a1)).addScaledVector(ikP, Math.sin(a1));   // upper arm direction
+    ikF.copy(ikD).multiplyScalar(dist).addScaledVector(ikU, -L_UPPER).normalize();   // forearm direction
+    // Upper arm's frame: -Y runs down the bone, +Z is the way the elbow bends
+    ikY.copy(ikU).negate();
+    ikZ.copy(ikF).addScaledVector(ikU, -ikF.dot(ikU));
+    if (ikZ.lengthSq() < 1e-8) ikZ.copy(ikP).addScaledVector(ikU, -ikP.dot(ikU));
+    ikZ.normalize();
+    ikX.crossVectors(ikY, ikZ);
+    ikM.makeBasis(ikX, ikY, ikZ);
+    outShoulderQ.setFromRotationMatrix(ikM);
+    outElbowQ.setFromAxisAngle(X_AXIS, -(Math.PI - a2));
+  }
+
+  // ---- ARM POSES ----
+  var poseE = new THREE.Euler(), qS = new THREE.Quaternion(), qE = new THREE.Quaternion();
+  var vSh = new THREE.Vector3(), vT = new THREE.Vector3(), vPole = new THREE.Vector3();
+  function poseArm(npc, side, mode, swing, dt) {
+    var s = side === 'L' ? 1 : -1;     // which side of the body (+X = their left)
+    var sh = npc.parts['upperArm' + side].pivot, el = npc.parts['forearm' + side].pivot;
+    if (mode === 'clutch') {           // grab the OTHER (hurt) arm just below the shoulder
+      vSh.set(s * 0.215, 0.23, 0);
+      vT.set(-s * 0.19, 0.06, 0.085);
+      vPole.set(s * 0.7, -1, -0.3);
+      solveArmIK(vSh, vT, vPole, qS, qE);
+    } else if (mode === 'thigh') {     // hand pressed on the hurt leg
+      vSh.set(s * 0.215, 0.23, 0);
+      vT.set(s * 0.11, -0.4, 0.1);
+      vPole.set(s * 0.5, 0, -1);
+      solveArmIK(vSh, vT, vPole, qS, qE);
+    } else {
+      var ex = 0, sx = 0, sz = s * 0.06;
+      if (mode === 'walk') { sx = swing; ex = -0.25 - Math.max(0, -swing) * 0.5; }
+      else if (mode === 'panic') { sx = -2.7 + Math.sin(npc.phase * 2 + s) * 0.4; sz = s * 0.25; ex = -0.4; }
+      else if (mode === 'dangle') { sx = 0.05 + Math.sin(npc.phase + 0.6) * 0.18; sz = s * 0.04; ex = -0.08; }
+      qS.setFromEuler(poseE.set(sx, 0, sz));
+      qE.setFromEuler(poseE.set(ex, 0, 0));
+    }
+    // ease towards the pose instead of snapping (frame-rate independent smoothing)
+    var k = 1 - Math.exp(-dt * 12);
+    sh.quaternion.slerp(qS, k);
+    el.quaternion.slerp(qE, k);
+  }
+
+  // ---- ALIVE: brain + animation ----
+  function updateAliveNpc(npc, dt) {
+    var p = npc.parts, w = npc.wounds;
+    if (npc.riseT > 0) {               // getting back up: tilt from lying flat to standing
+      npc.riseT -= dt;
+      var k = clamp(1 - npc.riseT / 0.6, 0, 1);
+      npc.vel.set(0, 0, 0);
+      placeNpc(npc);
+      npc.root.rotation.x = -Math.PI / 2 * (1 - k * k * (3 - 2 * k));   // smoothstep
+      npc.root.rotation.z = 0;
+      return;
+    }
+    if (npc.crawling) { updateCrawl(npc, dt); return; }
+    if (npc.sitting) { poseSitting(npc); return; }
+    npc.root.rotation.x = 0;
+    if (npc.panicT > 0) npc.panicT -= dt;
+    if (npc.flinchT > 0) npc.flinchT -= dt;
+    var running = npc.panicT > 0;
+    var limping = (w.legL || w.legR);
+
+    var want = 0;
+    if (npc.idleT > 0) {
+      npc.idleT -= dt;
+      if (npc.idleT <= 0) newWanderTarget(npc);
+    } else if (npc.target) {
+      var dx = npc.target.x - npc.x, dz = npc.target.y - npc.z;
+      if (Math.sqrt(dx * dx + dz * dz) < 0.4) {
+        npc.target = null;
+        npc.idleT = running ? 0.01 : rand(0.8, 3);
+        if (running) newWanderTarget(npc);
+      } else {
+        npc.heading += clamp(angleDiff(npc.heading, Math.atan2(dx, dz)), -4 * dt, 4 * dt);
+        want = running ? (limping ? 1.3 : 3.4) : npc.walkSpeed * (limping ? 0.45 : 1);
+      }
+    }
+    if (npc.flinchT > 0) want *= 0.2;       // stagger when hit
+    npc.speed += (want - npc.speed) * Math.min(1, dt * 5);
+    moveNpc(npc, dt);
+    placeNpc(npc);
+
+    // ---- LEGS: walk cycle ----
+    var c = Math.cos(npc.phase);
+    // a limp = rushing off the hurt leg and lingering on the good one
+    var onHurtLeg = (w.legL && !w.legR && c > 0) || (w.legR && !w.legL && c < 0);
+    npc.phase += dt * npc.speed * 5.5 * (limping ? (onHurtLeg ? 1.7 : 0.75) : 1);
+    c = Math.cos(npc.phase);
+    var amp = Math.min(0.7, npc.speed * 0.45);
+    var sw = Math.sin(npc.phase) * amp;
+    p.thighL.pivot.rotation.x = sw * (w.legL ? 0.35 : 1);
+    p.thighR.pivot.rotation.x = -sw * (w.legR ? 0.35 : 1);
+    // knees bend while that foot swings forward; a hurt leg stays stiff
+    p.shinL.pivot.rotation.x = Math.max(0, -c) * amp * 1.3 * (w.legL ? 0.15 : 1);
+    p.shinR.pivot.rotation.x = Math.max(0, c) * amp * 1.3 * (w.legR ? 0.15 : 1);
+    // dip + lean onto the hurt side when weight goes on it
+    var moving = Math.min(1, npc.speed / 0.4);
+    var dip = 0, lean = 0;
+    if (w.legL && !w.legR) { dip = Math.max(0, c); lean = -1; }
+    else if (w.legR && !w.legL) { dip = Math.max(0, -c); lean = 1; }
+    npc.root.position.y = -0.035 * dip * moving;
+    npc.root.rotation.z = 0.09 * lean * dip * moving;
+
+    // ---- ARMS: pick a pose for each ----
+    ['L', 'R'].forEach(function (side) {
+      var other = side === 'L' ? 'R' : 'L';
+      var mode = 'walk';
+      if (w['arm' + side]) mode = 'dangle';
+      else if (w['arm' + other]) mode = 'clutch';
+      else if (w['leg' + side]) mode = 'thigh';
+      else if (running && !limping) mode = 'panic';
+      var swing = (side === 'L' ? -sw : sw) * 0.8;   // arms swing opposite to legs
+      poseArm(npc, side, mode, swing, dt);
+    });
+
+    // torso flinches back when hit, head looks around
+    p.torso.mesh.rotation.x = -0.35 * Math.max(0, npc.flinchT / 0.3);
+    p.head.pivot.rotation.y = Math.sin(gameTime * 0.7 + npc.phase * 0.1) * 0.3;
+  }
+
+  // ---- RAGDOLL: swap animation for real physics bodies + joints ----
+  var tmpQ2 = new THREE.Quaternion();
+  function ragdollNpc(npc) {
+    if (npc.ragdoll || npc.removed) return;
+    npc.ragdoll = true;
+    npc.sitting = false; npc.crawling = false;
+    npc.lastHit = gameTime; npc.stillT = 0; npc.riseT = 0;
+    npcBodyOn(npc, false);
+    npc.root.updateMatrixWorld(true);
+    DETACH_ORDER.forEach(function (n) {
+      var part = npc.parts[n], def = NPC_PARTS[n], m = part.mesh, s = def.size;
+      m.getWorldPosition(tmpV); m.getWorldQuaternion(tmpQ2);
+      var b = new CANNON.Body({ mass: def.mass, collisionFilterGroup: NPC_GROUP, collisionFilterMask: 1 });
+      b.addShape(new CANNON.Box(new CANNON.Vec3(s[0] / 2, s[1] / 2, s[2] / 2)));
+      b.position.set(tmpV.x, tmpV.y, tmpV.z);
+      b.quaternion.set(tmpQ2.x, tmpQ2.y, tmpQ2.z, tmpQ2.w);
+      b.velocity.set(npc.vel.x, 0, npc.vel.z);       // keep walking momentum
+      b.angularDamping = 0.5; b.linearDamping = 0.05;
+      world.addBody(b);
+      part.body = b;
+      scene.attach(m);      // move the mesh out of the model but keep where it is in the world
+    });
+    PART_NAMES.forEach(function (n) {
+      var def = NPC_PARTS[n];
+      if (!def.parent) return;
+      var c = new CANNON.ConeTwistConstraint(npc.parts[def.parent].body, npc.parts[n].body, {
+        pivotA: new CANNON.Vec3(def.jA[0], def.jA[1], def.jA[2]),
+        pivotB: new CANNON.Vec3(def.jB[0], def.jB[1], def.jB[2]),
+        axisA: new CANNON.Vec3(0, def.axis, 0),
+        axisB: new CANNON.Vec3(0, def.axis, 0),
+        angle: def.angle * Math.PI, twistAngle: def.twist * Math.PI
+      });
+      world.addConstraint(c);
+      npc.joints.push(c);
+    });
+    npc.root.visible = false;
+    popText(pick(NPC_POPS), new THREE.Vector3(npc.x, 1.7, npc.z));
+  }
+  function clearRagdoll(npc) {
+    npc.joints.forEach(function (c) { world.removeConstraint(c); });
+    npc.joints = [];
+    PART_NAMES.forEach(function (n) {
+      var part = npc.parts[n];
+      if (part.body) { bodyGone(part.body); world.remove(part.body); part.body = null; }
+    });
+  }
+  var TORSO_PARENTS = { head: 1, upperArmL: 1, upperArmR: 1 };
+  function getUp(npc) {
+    var t = npc.parts.torso.body.position;
+    var spot = collide(t.x, t.z, 0.3);
+    npc.bounds = boundsAt(spot.z);         // landed in the room or the range? wander there now
+    npc.x = clamp(spot.x, npc.bounds.x1, npc.bounds.x2); npc.z = clamp(spot.z, npc.bounds.z1, npc.bounds.z2);
+    clearRagdoll(npc);
+    // put every part back in its socket, torso first so the arms have something to attach to
+    PART_NAMES.forEach(function (n) {
+      var part = npc.parts[n];
+      (part.pivot || npc.root).add(part.mesh);
+      part.mesh.position.copy(part.home);
+      part.mesh.quaternion.set(0, 0, 0, 1);
+      if (part.pivot) part.pivot.quaternion.set(0, 0, 0, 1);
+    });
+    if (npc.downed) {                  // went down = gets "repaired"
+      npc.hp = 100; npc.downed = false;
+      npc.wounds = { armL: false, armR: false, legL: false, legR: false };
+    }
+    npc.ragdoll = false;
+    npc.root.visible = true;
+    npc.heading = rand(-Math.PI, Math.PI);
+    npc.speed = 0; npc.vel.set(0, 0, 0);
+    npc.idleT = 0.4; npc.target = null; npc.panicT = 0; npc.flinchT = 0;
+    npc.root.position.y = 0;
+    if (npc.wounds.legL && npc.wounds.legR) {
+      npc.crawling = true;                 // no legs to stand on: crawl instead
+      npc.riseT = 0; npc.root.rotation.x = 1.25;
+    } else {
+      npc.riseT = 0.6; npc.root.rotation.x = -Math.PI / 2;
+    }
+    npc.body.velocity.set(0, 0, 0);
+    npcBodyOn(npc, true);
+    placeNpc(npc);
+  }
+  function updateRagdoll(npc, dt) {
+    var moving = false;
+    PART_NAMES.forEach(function (n) {
+      var part = npc.parts[n];
+      part.mesh.position.copy(part.body.position);
+      part.mesh.quaternion.copy(part.body.quaternion);
+      if (part.body.velocity.norm() > 0.35) moving = true;
+    });
+    npc.stillT = moving ? 0 : npc.stillT + dt;
+    var t = npc.parts.torso.body.position;
+    npc.x = t.x; npc.z = t.z;
+    if (t.y < -15) { removeNpc(npc); return; }
+    if (npcTied(npc)) { npc.stillT = 0; return; }   // tied up or held by a web: stays down
+    // get up after lying still for 2 s, and a few seconds since the last time you hit them
+    if (npc.stillT > 2 && gameTime - npc.lastHit > (npc.downed ? 5 : 2.5)) getUp(npc);
+  }
+
+  function updateNpcs(dt) {
+    for (var i = npcs.length - 1; i >= 0; i--) {
+      var npc = npcs[i];
+      if (npc.ragdoll) updateRagdoll(npc, dt);
+      else updateAliveNpc(npc, dt);
+    }
+  }
+
+  // 'upperArmL' -> 'armL', 'shinR' -> 'legR', 'head' -> 'head'
+  function limbOf(name) {
+    if (name.indexOf('Arm') > 0 || name.indexOf('forearm') === 0) return 'arm' + name.slice(-1);
+    if (name.indexOf('thigh') === 0 || name.indexOf('shin') === 0) return 'leg' + name.slice(-1);
+    return name;
+  }
+
+  // ---- getting shot ----
+  function hitNpc(npc, mesh, hit, dir, w) {
+    var name = mesh.userData.npcPart, limb = limbOf(name);
+    state.stats.hits++;
+    addDecal(hit);
+    sparks(hit.point, 0xc4935a);       // wood chips, not blood - they're mannequins
+    sfx.knock();
+    npc.lastHit = gameTime;
+    if (npc.ragdoll) {                 // already floppy: just shove the piece you hit
+      var rb = npc.parts[name].body;
+      rb.wakeUp();
+      rb.applyImpulse(toCannon(dir.clone().multiplyScalar(w.impulse * 2.5)), toCannon(hit.point));
+      return;
+    }
+    npc.hp -= (DAMAGE[state.weapon] || 25) * (LIMB_MULT[limb] || 1);
+    if (limb === 'head') { state.stats.heads++; popText('HEADSHOT', hit.point); }
+    var down = limb === 'head' || npc.hp <= 0;
+    var collapse = false;
+    if (!down && (limb === 'legL' || limb === 'legR')) {
+      var fresh = !npc.wounds[limb];
+      npc.wounds[limb] = true;
+      if (npc.wounds.legL && npc.wounds.legR && !npc.crawling) {
+        collapse = true;                   // both legs gone: they fall... then crawl (see getUp)
+        popText('CRAWLING', hit.point);
+      } else if (fresh) popText('LEG HIT', hit.point);
+    } else if (!down && (limb === 'armL' || limb === 'armR')) {
+      if (!npc.wounds[limb]) popText('ARM HIT', hit.point);
+      npc.wounds[limb] = true;
+    }
+    if (collapse) {
+      ragdollNpc(npc);
+      npc.parts[name].body.applyImpulse(toCannon(dir.clone().multiplyScalar(w.impulse * 1.5)), toCannon(hit.point));
+      return;
+    }
+    if (down) {
+      npc.downed = true;
+      ragdollNpc(npc);
+      var b = npc.parts[name].body;
+      b.wakeUp();
+      b.applyImpulse(toCannon(dir.clone().multiplyScalar(w.impulse * 4)), toCannon(hit.point));
+      return;
+    }
+    // still standing: flinch, then run (or limp) away from whoever shot them
+    npc.flinchT = 0.3;
+    camera.getWorldPosition(tmpV);
+    fleeFrom(npc, tmpV.x, tmpV.z);
+  }
+  // Something loud happened near them: run away from it!
+  function scareNpcs(point, radius) {
+    npcs.forEach(function (npc) {
+      if (npc.ragdoll || npc.riseT > 0) return;
+      var dx = npc.x - point.x, dz = npc.z - point.z;
+      if (dx * dx + dz * dz < radius * radius) fleeFrom(npc, point.x, point.z);
+    });
+  }
+  function flopAll() {
+    npcs.forEach(function (npc) {
+      if (npc.ragdoll) return;
+      ragdollNpc(npc);
+      npc.parts.torso.body.velocity.set(rand(-1, 1), 2.5, rand(-1, 1));
+      npc.parts.torso.body.angularVelocity.set(rand(-3, 3), rand(-3, 3), rand(-3, 3));
+    });
+  }
+  // Explosion: hurt + ragdoll everyone nearby and launch them; scare everyone else
+  function blastNpcs(c, R) {
+    npcs.forEach(function (npc) {
+      var dx = npc.x - c.x, dz = npc.z - c.z, dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist > R) { fleeFrom(npc, c.x, c.z); return; }
+      var k = 1 - dist / R, len = dist || 1;
+      npc.hp -= 120 * k;
+      if (npc.hp <= 0) npc.downed = true;
+      ragdollNpc(npc);
+      npc.lastHit = gameTime;
+      PART_NAMES.forEach(function (n) {
+        var b = npc.parts[n].body;
+        b.wakeUp();
+        b.velocity.set(dx / len * 14 * k + rand(-1, 1), 6 + 10 * k, dz / len * 14 * k + rand(-1, 1));
+        b.angularVelocity.set(rand(-10, 10), rand(-10, 10), rand(-10, 10));
+      });
+    });
+  }
+  // Player bumps into an NPC: shove them over
+  function kickNpcs(feetPos) {
+    npcs.forEach(function (npc) {
+      var dx = npc.x - feetPos.x, dz = npc.z - feetPos.z, d = Math.sqrt(dx * dx + dz * dz);
+      if (d > PLAYER_RADIUS + 0.3 || d < 1e-4 || gameTime - (npc.kickT || 0) < 0.4) return;
+      npc.kickT = gameTime;
+      var wasAlive = !npc.ragdoll;
+      ragdollNpc(npc);
+      npc.lastHit = gameTime;
+      var b = npc.parts.torso.body;
+      b.wakeUp();
+      b.velocity.x += dx / d * (wasAlive ? 3.5 : 2); b.velocity.z += dz / d * (wasAlive ? 3.5 : 2); b.velocity.y += 1.5;
+    });
+  }
+
+  var NPC_SPAWN = {
+    one: function () { makeNpc(rand(-4.5, 4.5), rand(-6, -18)); },
+    crowd: function () { for (var i = 0; i < 4; i++) makeNpc(rand(-4.5, 4.5), rand(-6, -18)); }
+  };
+
+  // =========================================================================
+  // 8. GUNS
+  // Each gun is a Group of boxes. Important named parts:
+  //   muzzle  - empty point at the barrel tip (bullets + flash start here)
+  //   mag     - the magazine, which drops out when you reload
+  //   rack    - the slide / charging handle / pump that moves when you rack it
+  //   screen  - little ammo display on the back of the gun
+  // The gun points down -Z, which is "forward" for the controller and camera.
+  // =========================================================================
+  var gunMount = new THREE.Group();   // attached to the controller (VR) or camera (desktop)
+  var kick = new THREE.Group();       // recoil wobbles this
+  gunMount.add(kick);
+  var guns = {};
+
+  function makeScreen(parent, x, y, z, tilt) {
+    var s = canvasTexture(128, 64, function () {});
+    var m = new THREE.Mesh(new THREE.PlaneBufferGeometry(0.07, 0.035), new THREE.MeshBasicMaterial({ map: s.tex }));
+    m.position.set(x, y, z); m.rotation.x = tilt;
+    parent.add(m);
+    return s;
+  }
+
+  function buildGun(kind) {
+    var g = new THREE.Group();
+    var dark = 0x1e2226, mid = 0x353b43, poly = 0x2a2f35;
+    var parts = { group: g };
+    var magWell = new THREE.Group();
+    if (kind === 'pistol') {
+      var frame = boxMesh(0.03, 0.026, 0.17, poly); frame.position.set(0, 0, -0.06); g.add(frame);
+      parts.rack = boxMesh(0.032, 0.03, 0.19, dark); parts.rack.position.set(0, 0.027, -0.065); g.add(parts.rack);
+      var sightF = boxMesh(0.006, 0.008, 0.006, 0xff6a00); sightF.position.set(0, 0.016, -0.085); parts.rack.add(sightF);
+      var grip = boxMesh(0.028, 0.11, 0.046, poly); grip.position.set(0, -0.055, 0.005); grip.rotation.x = 0.22; g.add(grip);
+      var guard = boxMesh(0.006, 0.006, 0.05, poly); guard.position.set(0, -0.03, -0.045); g.add(guard);
+      magWell.position.set(0, -0.055, 0.005); magWell.rotation.x = 0.22;
+      parts.mag = boxMesh(0.022, 0.105, 0.036, 0x111316); parts.mag.position.y = -0.01; magWell.add(parts.mag);
+      parts.muzzle = new THREE.Object3D(); parts.muzzle.position.set(0, 0.027, -0.165); g.add(parts.muzzle);
+      parts.rackDist = 0.035;
+      parts.screen = makeScreen(g, 0, 0.075, 0.03, -0.35);
+    } else if (kind === 'rifle') {
+      var upper = boxMesh(0.045, 0.05, 0.3, mid); upper.position.set(0, 0.02, -0.08); g.add(upper);
+      var lower = boxMesh(0.04, 0.035, 0.18, dark); lower.position.set(0, -0.02, -0.07); g.add(lower);
+      var hand = boxMesh(0.055, 0.055, 0.25, poly); hand.position.set(0, 0.018, -0.35); g.add(hand);
+      var barrel = boxMesh(0.018, 0.018, 0.2, dark); barrel.position.set(0, 0.025, -0.56); g.add(barrel);
+      var fsb = boxMesh(0.012, 0.05, 0.012, dark); fsb.position.set(0, 0.06, -0.45); g.add(fsb);
+      var rail = boxMesh(0.022, 0.012, 0.28, dark); rail.position.set(0, 0.051, -0.1); g.add(rail);
+      var optic = boxMesh(0.03, 0.035, 0.05, 0x111316); optic.position.set(0, 0.075, -0.08); g.add(optic);
+      var dot = boxMesh(0.006, 0.006, 0.002, 0xff2020); dot.position.set(0, 0.075, -0.054); g.add(dot);
+      var stock = boxMesh(0.04, 0.07, 0.2, poly); stock.position.set(0, 0.0, 0.17); g.add(stock);
+      var buffer = boxMesh(0.025, 0.025, 0.12, dark); buffer.position.set(0, 0.02, 0.09); g.add(buffer);
+      var pgrip = boxMesh(0.03, 0.09, 0.04, poly); pgrip.position.set(0, -0.07, 0.03); pgrip.rotation.x = 0.3; g.add(pgrip);
+      magWell.position.set(0, -0.045, -0.12); magWell.rotation.x = -0.18;
+      parts.mag = boxMesh(0.028, 0.15, 0.065, 0x111316); parts.mag.position.y = -0.06; magWell.add(parts.mag);
+      parts.rack = boxMesh(0.05, 0.012, 0.025, 0x50575f); parts.rack.position.set(0, 0.048, 0.06); g.add(parts.rack);
+      parts.muzzle = new THREE.Object3D(); parts.muzzle.position.set(0, 0.025, -0.67); g.add(parts.muzzle);
+      parts.rackDist = 0.06;
+      parts.screen = makeScreen(g, 0, 0.095, 0.0, -0.4);
+    } else if (kind === 'web' || kind === 'rope') {
+      // wrist-mounted web shooter: a band + cartridge + nozzle (red = WEB, blue = ROPE)
+      var band = boxMesh(0.075, 0.055, 0.12, kind === 'web' ? 0xb3202a : 0x1f4fb3); band.position.set(0, -0.01, 0); g.add(band);
+      var pod = boxMesh(0.045, 0.03, 0.075, 0xdfe6ee); pod.position.set(0, 0.03, -0.04); g.add(pod);
+      parts.rack = boxMesh(0.018, 0.018, 0.035, 0x22262b); parts.rack.position.set(0, 0.03, -0.09); g.add(parts.rack);
+      parts.muzzle = new THREE.Object3D(); parts.muzzle.position.set(0, 0.03, -0.11); g.add(parts.muzzle);
+      parts.rackDist = 0.012;
+      parts.screen = makeScreen(g, 0, 0.08, 0.04, -0.4);
+    } else {
+      var recv = boxMesh(0.05, 0.07, 0.22, dark); recv.position.set(0, 0.01, -0.05); g.add(recv);
+      var bar = boxMesh(0.026, 0.026, 0.52, mid); bar.position.set(0, 0.032, -0.42); g.add(bar);
+      var tube = boxMesh(0.022, 0.022, 0.4, dark); tube.position.set(0, 0.0, -0.36); g.add(tube);
+      var bead = boxMesh(0.006, 0.008, 0.006, 0xfff1a8); bead.position.set(0, 0.05, -0.67); g.add(bead);
+      parts.rack = boxMesh(0.05, 0.048, 0.16, 0x6b4a2b); parts.rack.position.set(0, -0.002, -0.3); g.add(parts.rack);
+      var sstock = boxMesh(0.042, 0.08, 0.26, 0x6b4a2b); sstock.position.set(0, -0.02, 0.18); sstock.rotation.x = 0.12; g.add(sstock);
+      var sgrip = boxMesh(0.03, 0.06, 0.05, 0x6b4a2b); sgrip.position.set(0, -0.045, 0.06); g.add(sgrip);
+      parts.shell = boxMesh(0.02, 0.02, 0.065, 0xc0302a); parts.shell.visible = false; parts.shell.position.set(0, -0.05, -0.02); g.add(parts.shell);
+      parts.muzzle = new THREE.Object3D(); parts.muzzle.position.set(0, 0.032, -0.69); g.add(parts.muzzle);
+      parts.rackDist = 0.09;
+      parts.screen = makeScreen(g, 0, 0.085, 0.02, -0.4);
+    }
+    g.add(magWell);
+    parts.rackBase = parts.rack.position.z;
+    if (parts.mag) parts.mag.userData.baseY = parts.mag.position.y;
+    g.visible = false;
+    kick.add(g);
+    return parts;
+  }
+  WEAPON_ORDER.forEach(function (k) { guns[k] = buildGun(k); });
+
+  // Muzzle flash: a glowing blob + a point light (kept at intensity 0 when off,
+  // because adding/removing lights forces slow shader recompiles).
+  var flash = new THREE.Mesh(new THREE.SphereBufferGeometry(0.035, 8, 6),
+    new THREE.MeshBasicMaterial({ color: 0xffc35a, transparent: true, opacity: 0.9 }));
+  flash.visible = false;
+  var flashLight = new THREE.PointLight(0xffb347, 0, 6);
+  scene.add(flashLight);
+  var flashTimer = 0;
+
+  function drawGunScreen(kind) {
+    var gun = guns[kind], w = WEAPONS[kind], s = gun.screen, ctx = s.ctx;
+    var ammo = state.ammo[kind];
+    if (w.tool) {
+      ctx.fillStyle = '#05080b'; ctx.fillRect(0, 0, 128, 64);
+      ctx.strokeStyle = '#e8eef5'; ctx.lineWidth = 3; ctx.strokeRect(1.5, 1.5, 125, 61);
+      ctx.textAlign = 'left'; ctx.fillStyle = '#ffffff'; ctx.font = 'bold 26px monospace';
+      ctx.fillText(w.name, 8, 32);
+      ctx.textAlign = 'right'; ctx.fillStyle = '#9fd8ff'; ctx.font = 'bold 12px monospace';
+      ctx.fillText('ROPES ' + ropes.length, 122, 18);
+      ctx.textAlign = 'left'; ctx.font = 'bold 11px monospace'; ctx.fillStyle = '#ffb52e';
+      ctx.fillText(kind === 'web' ? 'HOLD TRIGGER' : (pendingEnd ? 'PICK 2ND POINT' : 'PICK 1ST POINT'), 8, 54);
+      s.tex.needsUpdate = true;
+      return;
+    }
+    ctx.fillStyle = '#05080b'; ctx.fillRect(0, 0, 128, 64);
+    ctx.strokeStyle = '#1d6b4a'; ctx.lineWidth = 3; ctx.strokeRect(1.5, 1.5, 125, 61);
+    ctx.fillStyle = ammo === 0 ? '#ff4a3a' : (ammo <= w.mag * 0.25 ? '#ffb52e' : '#5cff9d');
+    ctx.font = 'bold 34px monospace'; ctx.textAlign = 'left';
+    ctx.fillText(String(ammo), 8, 36);
+    ctx.font = 'bold 15px monospace'; ctx.fillStyle = '#7fa391';
+    ctx.fillText('/' + w.mag, 8 + ctx.measureText(String(ammo)).width * 2.25, 36);
+    ctx.textAlign = 'right'; ctx.fillStyle = '#9fd8ff'; ctx.font = 'bold 13px monospace';
+    ctx.fillText(w.name, 122, 18);
+    ctx.textAlign = 'left'; ctx.font = 'bold 12px monospace';
+    var msg = '', col = '#ffb52e';
+    if (state.reloading && state.reloading.kind === kind) msg = 'RELOADING...';
+    else if (ammo === 0) { msg = state.vr ? 'FLICK TO RELOAD' : 'PRESS R'; col = '#ff4a3a'; }
+    ctx.fillStyle = col; ctx.fillText(msg, 8, 56);
+    s.tex.needsUpdate = true;
+  }
+
+  function selectWeapon(kind) {
+    if (state.reloading) cancelReload();
+    webRelease();
+    state.weapon = kind;
+    WEAPON_ORDER.forEach(function (k) { guns[k].group.visible = (k === kind); });
+    guns[kind].muzzle.add(flash);
+    placeGunMount();
+    drawGunScreen(kind);
+    drawBoard();
+  }
+  function nextWeapon() {
+    selectWeapon(WEAPON_ORDER[(WEAPON_ORDER.indexOf(state.weapon) + 1) % WEAPON_ORDER.length]);
+    sfx.rack();
+  }
+  function placeGunMount() {
+    if (state.vr) gunMount.position.set(0, 0, 0);
+    else gunMount.position.fromArray(WEAPONS[state.weapon].offset);
+  }
+
+  // ---- FIRING ----
+  var raycaster = new THREE.Raycaster();
+  raycaster.far = 90;
+  var tmpV = new THREE.Vector3(), tmpV2 = new THREE.Vector3(), tmpQ = new THREE.Quaternion();
+
+  // Where the bullet starts and which way it goes.
+  // VR: out of the barrel. Desktop: straight out of your eye through the crosshair.
+  function getAim(out) {
+    var gun = guns[state.weapon];
+    gun.muzzle.getWorldPosition(out.muzzle);
+    if (state.vr) {
+      controller.getWorldQuaternion(tmpQ);
+      out.origin.copy(out.muzzle);
+      out.dir.set(0, 0, -1).applyQuaternion(tmpQ);
+    } else {
+      camera.getWorldPosition(out.origin);
+      camera.getWorldDirection(out.dir);
+    }
+    return out;
+  }
+  var aim = { origin: new THREE.Vector3(), dir: new THREE.Vector3(), muzzle: new THREE.Vector3() };
+
+  function tryFire() {
+    var w = WEAPONS[state.weapon];
+    if (w.tool) { webFire(); return; }   // spider tools work differently (section 9b)
+    if (state.reloading) {
+      // Shotgun trick: you can stop loading shells and shoot whenever there's one in.
+      if (state.weapon === 'shotgun' && state.ammo.shotgun > 0) cancelReload();
+      else return;
+    }
+    if (gameTime - state.lastShot < w.rate) return;
+    if (state.ammo[state.weapon] <= 0) {
+      if (!state.dryClicked) { sfx.click(); state.dryClicked = true; }
+      return;
+    }
+    state.lastShot = gameTime;
+    state.ammo[state.weapon]--;
+    state.stats.shots++;
+
+    sfx.shot(w);
+    kickAmount = Math.min(kickAmount + w.recoil, 0.16);
+    flash.visible = true; flash.scale.setScalar(rand(0.8, 1.5)); flashTimer = 0.045;
+    getAim(aim);
+    flashLight.position.copy(aim.muzzle); flashLight.intensity = 2.2;
+
+    for (var i = 0; i < w.pellets; i++) {
+      tmpV.copy(aim.dir);
+      tmpV.x += rand(-1, 1) * w.spread; tmpV.y += rand(-1, 1) * w.spread; tmpV.z += rand(-1, 1) * w.spread;
+      tmpV.normalize();
+      raycaster.set(aim.origin, tmpV);
+      var hits = raycaster.intersectObjects(targets, false);
+      var end = hits.length ? hits[0].point : tmpV2.copy(aim.origin).addScaledVector(tmpV, 60);
+      addTracer(aim.muzzle, end);
+      if (hits.length) onBulletHit(hits[0], tmpV.clone(), w);
+    }
+
+    var gun = guns[state.weapon];
+    if (state.weapon === 'pistol' && state.ammo.pistol === 0) {
+      gun.rack.position.z = gun.rackBase + gun.rackDist; // slide locks back on empty, like a real Glock
+    } else if (state.weapon === 'shotgun' && state.ammo.shotgun > 0) {
+      later(0.22, function () { startRack('shotgun'); sfx.rack(); });  // pump it!
+    } else {
+      startRack(state.weapon, 0.08, 0.6);  // quick slide cycle
+    }
+    drawGunScreen(state.weapon);
+    scoreDirty = true;
+  }
+
+  function onBulletHit(hit, dir, w) {
+    var obj = hit.object;
+    if (obj.userData.button) { pressButton(obj); return; }
+    scareNpcs(hit.point, 4);    // bullets landing near NPCs make them run
+    if (obj.userData.npc) { hitNpc(obj.userData.npc, obj, hit, dir, w); return; }
+    var p = obj.userData.prop;
+    sparks(hit.point, p ? 0xffe28a : 0xcdb38a);
+    if (!p) { addDecal(hit); sfx.tink(); return; }  // hit scenery
+
+    state.stats.hits++;
+    if (p.type === 'barrel') { explode(p); return; }
+    addDecal(hit);
+    // Shove the object: impulse at the exact hit point = it spins realistically.
+    p.body.wakeUp();
+    p.body.applyImpulse(toCannon(dir.multiplyScalar(w.impulse)), toCannon(hit.point));
+    wakeNeighbours(p.body.position, 1.2);
+    if (p.type === 'plate') sfx.ping();
+    else if (p.type === 'dummy') {
+      if (obj.userData.part === 'head') { state.stats.heads++; sfx.ping(); popText('HEADSHOT', hit.point); }
+      else sfx.thud();
+    } else sfx.thud();
+  }
+  function wakeNeighbours(pos, r) {
+    props.forEach(function (q) { if (q.body.position.distanceTo(pos) < r) q.body.wakeUp(); });
+  }
+
+  // ---- RECOIL + RACKING ----
+  var kickAmount = 0;
+  var rackAnim = null;   // { kind, t, dur, depth }
+  function startRack(kind, dur, depth) { rackAnim = { kind: kind, t: 0, dur: dur || 0.32, depth: depth || 1 }; }
+  function updateGunAnim(dt) {
+    kickAmount *= Math.exp(-dt * 16);
+    kick.position.z = kickAmount * 0.6;
+    kick.rotation.x = kickAmount * 2.2;
+    if (rackAnim) {
+      var g = guns[rackAnim.kind];
+      rackAnim.t += dt;
+      var k = clamp(rackAnim.t / rackAnim.dur, 0, 1);
+      g.rack.position.z = g.rackBase + Math.sin(k * Math.PI) * g.rackDist * rackAnim.depth;
+      if (k >= 1) { g.rack.position.z = g.rackBase; rackAnim = null; }
+    }
+    if (flashTimer > 0) { flashTimer -= dt; if (flashTimer <= 0) { flash.visible = false; flashLight.intensity = 0; } }
+  }
+
+  // ---- RELOADING ----
+  // Mag guns: old mag drops out (it's a real physics object!), new mag slides up, rack it.
+  // Shotgun: loads one shell at a time. Pull the trigger to stop early.
+  function startReload() {
+    var kind = state.weapon, w = WEAPONS[kind];
+    if (w.tool || state.reloading || state.ammo[kind] >= w.mag) return;
+    state.reloading = { kind: kind, t: 0, inDone: false, rackDone: false, shellT: 0 };
+    var gun = guns[kind];
+    if (kind !== 'shotgun') {
+      dropMag(gun);
+      gun.mag.visible = false;
+      sfx.magOut();
+    }
+    drawGunScreen(kind);
+  }
+  function cancelReload() {
+    var r = state.reloading;
+    if (!r) return;
+    var gun = guns[r.kind];
+    if (gun.mag) { gun.mag.visible = true; gun.mag.position.y = gun.mag.userData.baseY; }
+    if (gun.shell) gun.shell.visible = false;
+    state.reloading = null;
+    drawGunScreen(r.kind);
+  }
+  function updateReload(dt) {
+    var r = state.reloading;
+    if (!r) return;
+    var w = WEAPONS[r.kind], gun = guns[r.kind];
+    r.t += dt;
+    if (r.kind === 'shotgun') {
+      r.shellT += dt;
+      var k = r.shellT / 0.38;
+      gun.shell.visible = k < 0.6;
+      gun.shell.position.y = -0.07 + Math.min(k / 0.6, 1) * 0.05;
+      if (r.shellT >= 0.38) {
+        r.shellT = 0;
+        state.ammo.shotgun++;
+        sfx.shell();
+        drawGunScreen('shotgun');
+        if (state.ammo.shotgun >= w.mag) {
+          gun.shell.visible = false;
+          state.reloading = null;
+          startRack('shotgun'); sfx.rack();
+          drawGunScreen('shotgun');
+        }
+      }
+      return;
+    }
+    var T = w.reload, base = gun.mag.userData.baseY;
+    if (r.t > T * 0.3) {
+      // new mag slides up into the gun
+      gun.mag.visible = true;
+      var p = clamp((r.t - T * 0.3) / (T * 0.3), 0, 1);
+      gun.mag.position.y = base - 0.16 * (1 - p * p);
+    }
+    if (!r.inDone && r.t > T * 0.6) { r.inDone = true; gun.mag.position.y = base; sfx.magIn(); }
+    if (!r.rackDone && r.t > T * 0.7) { r.rackDone = true; startRack(r.kind, T * 0.25); sfx.rack(); }
+    if (r.t >= T) {
+      state.ammo[r.kind] = w.mag;
+      state.reloading = null;
+      drawGunScreen(r.kind);
+    }
+  }
+  function dropMag(gun) {
+    var m = gun.mag;
+    m.getWorldPosition(tmpV);
+    m.getWorldQuaternion(tmpQ);
+    var geo = m.geometry.parameters;   // the box's width/height/depth
+    var body = new CANNON.Body({ mass: 0.25 });
+    body.addShape(new CANNON.Box(new CANNON.Vec3(geo.width / 2, geo.height / 2, geo.depth / 2)));
+    body.position.set(tmpV.x, tmpV.y - 0.03, tmpV.z);
+    body.quaternion.set(tmpQ.x, tmpQ.y, tmpQ.z, tmpQ.w);
+    body.velocity.set(rand(-0.3, 0.3), -1.2, rand(-0.3, 0.3));
+    body.angularVelocity.set(rand(-4, 4), rand(-2, 2), rand(-4, 4));
+    var mesh = new THREE.Mesh(m.geometry, m.material);
+    var p = addProp('mag', body, mesh);
+    later(14, function () { removeProp(p); });
+  }
+
+  // =========================================================================
+  // 9. EFFECTS
+  // =========================================================================
+  // Bullet holes: stuck onto whatever was hit (as a child), so they move with it.
+  var decals = [];
+  var holeTex = canvasTexture(64, 64, function (ctx, w, h) {
+    var g = ctx.createRadialGradient(32, 32, 2, 32, 32, 30);
+    g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(0.35, 'rgba(20,16,12,0.95)');
+    g.addColorStop(0.6, 'rgba(60,50,40,0.5)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  }).tex;
+  var decalGeo = new THREE.PlaneBufferGeometry(0.04, 0.04);
+  var decalMat = new THREE.MeshBasicMaterial({ map: holeTex, transparent: true, depthWrite: false,
+    polygonOffset: true, polygonOffsetFactor: -4 });
+  var Z_AXIS = new THREE.Vector3(0, 0, 1);
+  function addDecal(hit) {
+    if (!hit.face) return;
+    var obj = hit.object;
+    var d = new THREE.Mesh(decalGeo, decalMat);
+    d.userData.decal = true;
+    var local = obj.worldToLocal(hit.point.clone());
+    var n = hit.face.normal;  // already in the object's own (local) space
+    d.position.copy(local).addScaledVector(n, 0.002);
+    d.quaternion.setFromUnitVectors(Z_AXIS, n);
+    d.rotateZ(Math.random() * 6.28);
+    obj.add(d);
+    decals.push(d);
+    if (decals.length > MAX_DECALS) { var old = decals.shift(); if (old.parent) old.parent.remove(old); }
+  }
+
+  // Sparks: a pool of tiny boxes we reuse instead of creating new ones every shot
+  var sparkPool = [];
+  var sparkGeo = new THREE.BoxBufferGeometry(0.012, 0.012, 0.012);
+  for (var si = 0; si < 60; si++) {
+    var sm = new THREE.Mesh(sparkGeo, new THREE.MeshBasicMaterial({ color: 0xffe28a }));
+    sm.visible = false; sm.userData.vel = new THREE.Vector3(); sm.userData.life = 0;
+    scene.add(sm); sparkPool.push(sm);
+  }
+  var sparkIdx = 0;
+  function sparks(point, color) {
+    for (var i = 0; i < 6; i++) {
+      var s = sparkPool[sparkIdx++ % sparkPool.length];
+      s.visible = true; s.position.copy(point); s.material.color.setHex(color);
+      s.userData.vel.set(rand(-2, 2), rand(0.5, 3), rand(-2, 2));
+      s.userData.life = rand(0.2, 0.4);
+    }
+  }
+
+  // Tracers: a short streak along the bullet path
+  var tracerPool = [];
+  for (var ti = 0; ti < 20; ti++) {
+    var tg = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+    var tl = new THREE.Line(tg, new THREE.LineBasicMaterial({ color: 0xfff0b0, transparent: true, opacity: 0.8 }));
+    tl.visible = false; tl.frustumCulled = false; tl.userData.life = 0;
+    scene.add(tl); tracerPool.push(tl);
+  }
+  var tracerIdx = 0;
+  function addTracer(a, b) {
+    var t = tracerPool[tracerIdx++ % tracerPool.length];
+    var pos = t.geometry.attributes.position;
+    pos.setXYZ(0, a.x, a.y, a.z); pos.setXYZ(1, b.x, b.y, b.z); pos.needsUpdate = true;
+    t.visible = true; t.userData.life = 0.05;
+  }
+
+  // Floating text ("HEADSHOT", "BOOM")
+  var popups = [];
+  function popText(text, at) {
+    var s = canvasTexture(256, 64, function (ctx, w, h) {
+      ctx.font = 'bold 44px sans-serif'; ctx.textAlign = 'center';
+      ctx.lineWidth = 6; ctx.strokeStyle = '#1b1b1b'; ctx.strokeText(text, w / 2, 48);
+      ctx.fillStyle = '#ffb52e'; ctx.fillText(text, w / 2, 48);
+    });
+    var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: s.tex, transparent: true, depthTest: false }));
+    sp.scale.set(1.2, 0.3, 1);
+    sp.position.copy(at).y += 0.4;
+    sp.userData.life = 1.0;
+    scene.add(sp); popups.push(sp);
+  }
+
+  // Explosions: shove everything nearby away + chain reactions with other barrels
+  var boomPool = [];
+  for (var bi = 0; bi < 4; bi++) {
+    var bm = new THREE.Mesh(new THREE.SphereBufferGeometry(1, 16, 12),
+      new THREE.MeshBasicMaterial({ color: 0xff8a2a, transparent: true, opacity: 0, depthWrite: false }));
+    bm.visible = false; bm.userData.life = 0; scene.add(bm); boomPool.push(bm);
+  }
+  var boomIdx = 0;
+  var boomLight = new THREE.PointLight(0xff9a3a, 0, 22);
+  scene.add(boomLight);
+  function explode(p) {
+    if (p.dead || p.removed) return;
+    p.dead = true;
+    var c = p.body.position.clone();
+    removeProp(p);
+    state.stats.booms++;
+    sfx.boom();
+    var b = boomPool[boomIdx++ % boomPool.length];
+    b.position.set(c.x, c.y, c.z); b.visible = true; b.userData.life = 0.5; b.scale.setScalar(0.3);
+    boomLight.position.set(c.x, c.y + 1, c.z); boomLight.intensity = 4;
+    popText('BOOM', new THREE.Vector3(c.x, c.y + 0.6, c.z));
+    var R = 5.5;
+    props.slice().forEach(function (q) {
+      var d = q.body.position.vsub(c), dist = d.norm();
+      if (dist > R || dist < 0.001) return;
+      if (q.type === 'barrel' && dist < 3.2) { later(rand(0.12, 0.3), function () { explode(q); }); return; }
+      d.normalize();
+      d.y += 0.6;
+      var speed = 16 * (1 - dist / R) + 2;
+      q.body.wakeUp();
+      q.body.velocity.vadd(d.scale(speed), q.body.velocity);
+      q.body.angularVelocity.set(rand(-8, 8), rand(-8, 8), rand(-8, 8));
+    });
+    blastNpcs(c, R);
+    for (var i = 0; i < 4; i++) sparks(new THREE.Vector3(c.x, c.y, c.z), 0xff7a1a);
+    scoreDirty = true;
+  }
+
+  // Laser sight (VR only): a red beam + dot so you can actually aim with a 3DoF controller
+  var laserGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, 0, -1)]);
+  var laser = new THREE.Line(laserGeo, new THREE.LineBasicMaterial({ color: 0xff2020, transparent: true, opacity: 0.45 }));
+  laser.frustumCulled = false; laser.visible = false;
+  scene.add(laser);
+  var laserDot = new THREE.Mesh(new THREE.SphereBufferGeometry(0.012, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff2020 }));
+  laserDot.visible = false;
+  scene.add(laserDot);
+  function updateLaser() {
+    var on = state.vr && state.laser;
+    laser.visible = laserDot.visible = on;
+    if (!on) return;
+    getAim(aim);
+    raycaster.set(aim.origin, aim.dir);
+    var hits = raycaster.intersectObjects(targets, false);
+    var end = hits.length ? hits[0].point : tmpV2.copy(aim.origin).addScaledVector(aim.dir, 40);
+    var pos = laser.geometry.attributes.position;
+    pos.setXYZ(0, aim.muzzle.x, aim.muzzle.y, aim.muzzle.z); pos.setXYZ(1, end.x, end.y, end.z);
+    pos.needsUpdate = true;
+    var lc = WEAPONS[state.weapon].tool ? 0xffffff : 0xff2020;   // white aim line for web tools
+    laser.material.color.setHex(lc); laserDot.material.color.setHex(lc);
+    laserDot.position.copy(end);
+    laserDot.scale.setScalar(1 + aim.origin.distanceTo(end) * 0.25);
+    // highlight the board button you're pointing at
+    var hovered = hits.length && hits[0].object.userData.button ? hits[0].object : null;
+    buttons.forEach(function (b) { b.scale.setScalar(b === hovered ? 1.08 : 1); });
+  }
+
+  function updateFx(dt) {
+    sparkPool.forEach(function (s) {
+      if (!s.visible) return;
+      s.userData.life -= dt;
+      if (s.userData.life <= 0) { s.visible = false; return; }
+      s.userData.vel.y -= 9.8 * dt;
+      s.position.addScaledVector(s.userData.vel, dt);
+    });
+    tracerPool.forEach(function (t) { if (t.visible) { t.userData.life -= dt; if (t.userData.life <= 0) t.visible = false; } });
+    boomPool.forEach(function (b) {
+      if (!b.visible) return;
+      b.userData.life -= dt;
+      var k = 1 - b.userData.life / 0.5;
+      b.scale.setScalar(0.3 + k * 3.2);
+      b.material.opacity = Math.max(0, 0.85 * (1 - k));
+      if (b.userData.life <= 0) b.visible = false;
+    });
+    boomLight.intensity = Math.max(0, boomLight.intensity - dt * 9);
+    for (var i = popups.length - 1; i >= 0; i--) {
+      var p = popups[i];
+      p.userData.life -= dt;
+      p.position.y += dt * 0.6;
+      p.material.opacity = clamp(p.userData.life * 2, 0, 1);
+      if (p.userData.life <= 0) { scene.remove(p); p.material.map.dispose(); p.material.dispose(); popups.splice(i, 1); }
+    }
+  }
+
+  // =========================================================================
+  // 9b. SPIDER TOOLS - the WEB and the ROPE
+  //
+  // WEB  (hold trigger)
+  //   on an object or mannequin -> it gets yanked to a spot in front of you and
+  //       follows your aim, so you can swing it around. Let go to FLING it.
+  //   on a wall / ceiling / floor / pole -> the web reels YOU in. Swing, then let go to fly.
+  // ROPE (click, click)
+  //   click two points -> a rope joins them. Tie a mannequin to a wall, a barrel to a
+  //   crate, two mannequins together... Shoot CUT WEBS on the board to clear them.
+  //
+  // A rope here is a "one-sided spring": it pulls when stretched, does nothing when slack
+  // (a normal spring would also PUSH, which is not how rope works).
+  // =========================================================================
+  var MAX_ROPES = 10;
+  var WEB_RANGE = 45;
+  var ropes = [];            // { a: end, b: end, length, mesh }
+  var pendingEnd = null;     // ROPE: first point picked, waiting for the second
+  var grab = null;           // WEB: holding an object { end, holdDist, mesh }
+  var zip = null;            // WEB: swinging on a wall { anchor, length, mesh }
+  var player = { vel: new THREE.Vector3(), airborne: false };
+
+  // The strand you see: a thin cylinder stretched between two points every frame
+  var webGeo = new THREE.CylinderBufferGeometry(0.009, 0.009, 1, 5);
+  webGeo.translate(0, 0.5, 0);               // base at one end, so scaling Y stretches it
+  var webMat = new THREE.MeshBasicMaterial({ color: 0xf4f4f4 });
+  var UP_Y = new THREE.Vector3(0, 1, 0), sDir = new THREE.Vector3();
+  function newStrand() { var m = new THREE.Mesh(webGeo, webMat); m.frustumCulled = false; scene.add(m); return m; }
+  function stretch(mesh, a, b) {
+    sDir.subVectors(b, a);
+    var len = sDir.length();
+    mesh.position.copy(a);
+    mesh.scale.set(1, Math.max(len, 0.001), 1);
+    if (len > 1e-6) mesh.quaternion.setFromUnitVectors(UP_Y, sDir.multiplyScalar(1 / len));
+  }
+
+  // A rope "end" is either stuck to a physics body (a point in the body's own space,
+  // so it moves with it) or nailed to the world (walls, floor, poles).
+  function makeEnd(hit) {
+    var obj = hit.object, body = null, npc = null;
+    if (obj.userData.npc) {
+      npc = obj.userData.npc;
+      ragdollNpc(npc);                 // you can't tie up someone mid-stride: they go floppy
+      npc.lastHit = gameTime;
+      body = npc.parts[obj.userData.npcPart].body;
+    } else if (obj.userData.prop) {
+      body = obj.userData.prop.body;
+    }
+    var end = { body: body, npc: npc, local: null, world: null, mesh: null };
+    if (body) { end.local = body.pointToLocalFrame(toCannon(hit.point)); body.wakeUp(); }
+    else end.world = hit.point.clone();
+    return end;
+  }
+  var cA = new CANNON.Vec3(), cB = new CANNON.Vec3(), cV1 = new CANNON.Vec3(), cV2 = new CANNON.Vec3(), cF = new CANNON.Vec3();
+  function endWorld(end, out) {
+    if (end.body) end.body.pointToWorldFrame(end.local, out);
+    else out.set(end.world.x, end.world.y, end.world.z);
+    return out;
+  }
+  function endVel(end, p, out) {
+    if (end.body) end.body.getVelocityAtWorldPoint(p, out); else out.set(0, 0, 0);
+    return out;
+  }
+  // How "heavy" an end feels. A mannequin limb is light, but the whole mannequin hangs off it.
+  function feelMass(end) { return end.body ? (end.npc ? 15 : end.body.mass) : 0; }
+
+  // ---- firing the tools ----
+  function webFire() {
+    getAim(aim);
+    raycaster.set(aim.origin, aim.dir);
+    raycaster.far = WEB_RANGE;
+    var hits = raycaster.intersectObjects(targets, false);
+    raycaster.far = 90;
+    sfx.thwip();
+    startRack(state.weapon, 0.12, 1);
+    if (!hits.length) return;
+    var hit = hits[0];
+    if (hit.object.userData.button) { pressButton(hit.object); return; }
+    scareNpcs(hit.point, 3);
+    if (state.weapon === 'rope') { ropeClick(hit); return; }
+    var end = makeEnd(hit);
+    if (end.body) {
+      grab = { end: end, holdDist: Math.min(aim.origin.distanceTo(hit.point), 6), mesh: newStrand() };
+    } else {
+      zip = { anchor: hit.point.clone(), length: rig.position.distanceTo(hit.point), mesh: newStrand() };
+      player.airborne = true;
+    }
+  }
+  function webRelease() {
+    if (grab) { scene.remove(grab.mesh); grab = null; }
+    if (zip) { scene.remove(zip.mesh); zip = null; }
+  }
+  function ropeClick(hit) {
+    var end = makeEnd(hit);
+    if (!pendingEnd) {
+      pendingEnd = end; end.mesh = newStrand();
+      sfx.thunk(); drawGunScreen('rope');
+      return;
+    }
+    var a = pendingEnd;
+    pendingEnd = null;
+    scene.remove(a.mesh);
+    // wall-to-wall does nothing, and tying something to itself is pointless
+    if ((!a.body && !end.body) || (a.body && a.body === end.body)) { sfx.click(); drawGunScreen('rope'); return; }
+    var pa = endWorld(a, new CANNON.Vec3()), pb = endWorld(end, new CANNON.Vec3());
+    // The rope starts a bit shorter than the gap, then reels itself in to a quarter of it,
+    // so whatever you tied gets dragged over to the wall / the other thing and stays there.
+    var gap = pa.distanceTo(pb);
+    var rope = { a: a, b: end, length: Math.max(0.15, gap * 0.85), minLen: Math.max(0.35, gap * 0.25), mesh: newStrand() };
+    ropes.push(rope);
+    while (ropes.length > MAX_ROPES) removeRope(ropes[0]);
+    sfx.thunk();
+    drawGunScreen('rope');
+  }
+  function removeRope(r) { scene.remove(r.mesh); ropes.splice(ropes.indexOf(r), 1); }
+  function cutAllWebs() {
+    ropes.slice().forEach(removeRope);
+    if (pendingEnd) { scene.remove(pendingEnd.mesh); pendingEnd = null; }
+    webRelease();
+    sfx.snip();
+    if (WEAPONS[state.weapon].tool) drawGunScreen(state.weapon);
+  }
+  // A body is leaving the world (prop removed, mannequin standing back up):
+  // drop every web attached to it, or they'd pull on a ghost.
+  function bodyGone(body) {
+    ropes.slice().forEach(function (r) { if (r.a.body === body || r.b.body === body) removeRope(r); });
+    if (pendingEnd && pendingEnd.body === body) { scene.remove(pendingEnd.mesh); pendingEnd = null; }
+    if (grab && grab.end.body === body) { scene.remove(grab.mesh); grab = null; }
+  }
+  function npcTied(npc) {
+    if (grab && grab.end.npc === npc) return true;
+    for (var i = 0; i < ropes.length; i++) if (ropes[i].a.npc === npc || ropes[i].b.npc === npc) return true;
+    return false;
+  }
+
+  // ---- forces: run inside the physics engine, before every physics step ----
+  var STEP = 1 / 60;
+  function ropeForces() {
+    var dtStep = STEP * state.timeScale;
+    ropes.forEach(function (r) {
+      endWorld(r.a, cA); endWorld(r.b, cB);
+      var dx = cB.x - cA.x, dy = cB.y - cA.y, dz = cB.z - cA.z;
+      var d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (d <= r.length || d < 1e-5) return;            // slack rope pulls nothing
+      var nx = dx / d, ny = dy / d, nz = dz / d;
+      endVel(r.a, cA, cV1); endVel(r.b, cB, cV2);
+      var vrel = (cV2.x - cV1.x) * nx + (cV2.y - cV1.y) * ny + (cV2.z - cV1.z) * nz;   // + = moving apart
+      // Spring strength scales with how heavy the things are, so a can and a barrel
+      // both feel "roped". Then it's capped so a light body can't explode the simulation
+      // (too stiff a spring + a big time step = things fly off to infinity).
+      var ma = feelMass(r.a), mb = feelMass(r.b);
+      var m = !ma ? mb : (!mb ? ma : ma * mb / (ma + mb));
+      var lightest = Math.min(r.a.body ? r.a.body.mass : 1e9, r.b.body ? r.b.body.mass : 1e9);
+      var k = Math.min(160 * m, 0.6 * lightest / (dtStep * dtStep));
+      var c = Math.min(18 * m, 1.2 * lightest / dtStep);
+      var f = k * (d - r.length) + c * vrel;
+      if (f <= 0) return;
+      if (r.a.body) { cF.set(nx * f, ny * f, nz * f); r.a.body.applyForce(cF, cA); }
+      if (r.b.body) { cF.set(-nx * f, -ny * f, -nz * f); r.b.body.applyForce(cF, cB); }
+    });
+  }
+  var gTarget = new THREE.Vector3();
+  function grabForces() {
+    if (!grab) return;
+    var b = grab.end.body, dtStep = STEP * state.timeScale;
+    getAim(aim);
+    gTarget.copy(aim.origin).addScaledVector(aim.dir, grab.holdDist);   // where we want it
+    endWorld(grab.end, cA); endVel(grab.end, cA, cV1);
+    // desired velocity points at the target (faster when further away)...
+    var vx = (gTarget.x - cA.x) * 12, vy = (gTarget.y - cA.y) * 12, vz = (gTarget.z - cA.z) * 12;
+    var vl = Math.sqrt(vx * vx + vy * vy + vz * vz);
+    if (vl > 26) { vx *= 26 / vl; vy *= 26 / vl; vz *= 26 / vl; }
+    // ...and the force steers the actual velocity towards it (+ cancels gravity so it floats)
+    var m = Math.min(feelMass(grab.end), 6 * b.mass);
+    var gain = Math.min(12, 1.0 / dtStep);
+    var g = -world.gravity.y;
+    cF.set((vx - cV1.x) * gain * m, (vy - cV1.y) * gain * m + g * m, (vz - cV1.z) * gain * m);
+    b.wakeUp();
+    b.applyForce(cF, cA);
+  }
+  world.addEventListener('preStep', function () { ropeForces(); grabForces(); });
+
+  // ---- YOU on a web: simple projectile + rope physics for the player ----
+  var ZIP_REEL = 7;         // metres per second the web reels you in
+  function inRoom(p) { return p.x > -4 && p.x < 4 && p.z > 5.9 && p.z < 14; }
+  var pTmp = new THREE.Vector3();
+  function updatePlayer(dt) {
+    if (!zip && !player.airborne) return;
+    var p = rig.position, v = player.vel;
+    v.y += world.gravity.y * dt;                         // gravity (moon gravity too!)
+    if (zip) {
+      zip.length = Math.max(1.2, zip.length - ZIP_REEL * dt);
+      pTmp.subVectors(zip.anchor, p).normalize();
+      v.addScaledVector(pTmp, 9 * dt);                   // extra tug towards the anchor
+    }
+    p.addScaledVector(v, dt);
+    if (zip) {
+      // the web can't stretch: if we're too far, snap back onto the circle and
+      // cancel the speed going outwards. What's left is the swing!
+      pTmp.subVectors(p, zip.anchor);
+      var d = pTmp.length();
+      if (d > zip.length) {
+        pTmp.divideScalar(d);
+        p.copy(zip.anchor).addScaledVector(pTmp, zip.length);
+        var out = v.dot(pTmp);
+        if (out > 0) v.addScaledVector(pTmp, -out);
+      }
+    }
+    var fixed = collide(p.x, p.z);                       // walls still stop you
+    if (fixed.x !== p.x) v.x = 0;
+    if (fixed.z !== p.z) v.z = 0;
+    p.x = fixed.x; p.z = fixed.z;
+    if (inRoom(p) && p.y > 3.0) { p.y = 3.0; if (v.y > 0) v.y = 0; }   // back room ceiling
+    if (p.y > 40) { p.y = 40; if (v.y > 0) v.y = 0; }
+    if (p.y <= PLAYER_HEIGHT) {                          // landed
+      if (!zip && v.y < -6) sfx.thud();
+      p.y = PLAYER_HEIGHT;
+      if (v.y < 0) v.y = 0;
+      if (!zip) { player.airborne = false; v.set(0, 0, 0); }
+      else v.multiplyScalar(Math.exp(-dt * 3));          // dragging along the floor
+    }
+    if (v.length() > 30) v.setLength(30);
+  }
+
+  // Comfort vignette: the edges of your view go dark while you fly fast.
+  // Less moving stuff in your peripheral vision = much less motion sickness.
+  var vignette = new THREE.Mesh(new THREE.RingBufferGeometry(0.07, 0.6, 40),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0, depthTest: false, depthWrite: false }));
+  vignette.position.z = -0.16;
+  vignette.renderOrder = 999;
+  vignette.visible = false;
+  camera.add(vignette);
+
+  var wA = new THREE.Vector3(), wB = new THREE.Vector3(), wM = new THREE.Vector3();
+  function updateWebs(dt) {
+    if (grab || zip || pendingEnd) guns[state.weapon].muzzle.getWorldPosition(wM);
+    if (grab) {
+      grab.holdDist = Math.max(1.6, grab.holdDist - 4 * dt);   // reel it in towards you
+      endWorld(grab.end, cA); wA.set(cA.x, cA.y, cA.z);
+      stretch(grab.mesh, wM, wA);
+    }
+    if (zip) stretch(zip.mesh, wM, zip.anchor);
+    if (pendingEnd) { endWorld(pendingEnd, cA); wA.set(cA.x, cA.y, cA.z); stretch(pendingEnd.mesh, wM, wA); }
+    ropes.forEach(function (r) {
+      if (r.length > r.minLen) r.length = Math.max(r.minLen, r.length - 3 * dt * state.timeScale);   // reel in
+      endWorld(r.a, cA); endWorld(r.b, cB);
+      wA.set(cA.x, cA.y, cA.z); wB.set(cB.x, cB.y, cB.z);
+      stretch(r.mesh, wA, wB);
+    });
+    var want = clamp((player.vel.length() - 2.5) / 8, 0, 0.8);
+    var mt = vignette.material;
+    mt.opacity += (want - mt.opacity) * Math.min(1, dt * 8);
+    vignette.visible = mt.opacity > 0.01;
+  }
+
+  // Tall poles along the range: something to web onto and swing from
+  [-6, -14, -22].forEach(function (z) {
+    [-5.3, 5.3].forEach(function (x) {
+      addStatic(0.18, 8, 0.18, x, 4, z, 0x3b3f44);
+      addStatic(0.9, 0.14, 0.14, x * 0.92, 7.9, z, 0x3b3f44);
+    });
+  });
+
+  // =========================================================================
+  // 10. THE SHOOTABLE BUTTON BOARD + SCOREBOARD
+  // No menus in VR: the menu is a sign on your left and you SHOOT the buttons.
+  // =========================================================================
+  var board = new THREE.Group();
+  board.position.set(-1.95, 1.75, -2.2);
+  board.rotation.y = 0.72;  // angled to face you
+  scene.add(board);
+  var backing = boxMesh(1.5, 1.62, 0.04, 0x1b2430);
+  backing.position.set(0, -0.25, -0.03);
+  board.add(backing);
+  targets.push(backing);
+  var titleTex = canvasTexture(256, 32, function (ctx, w, h) {
+    ctx.fillStyle = '#1b2430'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#ffb52e'; ctx.font = 'bold 22px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('SHOOT TO SPAWN', w / 2, 24);
+  }).tex;
+  var title = new THREE.Mesh(new THREE.PlaneBufferGeometry(0.9, 0.11), new THREE.MeshBasicMaterial({ map: titleTex }));
+  title.position.set(0, 0.47, 0);
+  board.add(title);
+
+  var BUTTON_DEFS = [
+    { label: 'CRATE',   kind: 'spawn',  act: function () { SPAWN.crate(); } },
+    { label: 'TOWER',   kind: 'spawn',  act: function () { SPAWN.tower(); } },
+    { label: 'CANS',    kind: 'spawn',  act: function () { SPAWN.cans(); } },
+    { label: 'DUMMY',   kind: 'spawn',  act: function () { SPAWN.dummy(); } },
+    { label: 'BARREL',  kind: 'spawn',  act: function () { SPAWN.barrel(); } },
+    { label: 'RESET',   kind: 'danger', act: function () { resetRange(); } },
+    { label: 'NPC',     kind: 'spawn',  act: function () { NPC_SPAWN.one(); } },
+    { label: 'CROWD',   kind: 'spawn',  act: function () { NPC_SPAWN.crowd(); } },
+    { label: 'FLOP',    kind: 'danger', act: function () { flopAll(); } },
+    { label: 'PISTOL',  kind: 'gun', gun: 'pistol',  act: function () { selectWeapon('pistol'); } },
+    { label: 'RIFLE',   kind: 'gun', gun: 'rifle',   act: function () { selectWeapon('rifle'); } },
+    { label: 'SHOTGUN', kind: 'gun', gun: 'shotgun', act: function () { selectWeapon('shotgun'); } },
+    { label: 'LASER',   kind: 'toggle', key: 'laser', act: function () { state.laser = !state.laser; } },
+    { label: 'SLOW-MO', kind: 'toggle', key: 'slowmo', act: function () {
+        state.slowmo = !state.slowmo; state.timeScale = state.slowmo ? 0.25 : 1; } },
+    { label: 'MOON',    kind: 'toggle', key: 'moon', act: function () {
+        state.moon = !state.moon;
+        world.gravity.set(0, state.moon ? -1.62 : -9.82, 0);
+        props.forEach(function (p) { p.body.wakeUp(); }); } },
+    { label: 'WEB',     kind: 'gun', gun: 'web',  act: function () { selectWeapon('web'); } },
+    { label: 'ROPE',    kind: 'gun', gun: 'rope', act: function () { selectWeapon('rope'); } },
+    { label: 'CUT WEBS', kind: 'danger', act: function () { cutAllWebs(); } }
+  ];
+  var buttons = [];
+  var BW = 0.44, BH = 0.2;
+  BUTTON_DEFS.forEach(function (def, i) {
+    var col = i % 3, row = Math.floor(i / 3);
+    var s = canvasTexture(256, 116, function () {});
+    var m = new THREE.Mesh(boxGeo(BW, BH, 0.03), [mat(0x111820), mat(0x111820), mat(0x111820), mat(0x111820),
+      new THREE.MeshBasicMaterial({ map: s.tex }), mat(0x111820)]);
+    m.position.set((col - 1) * (BW + 0.03), 0.28 - row * (BH + 0.04), 0);
+    m.userData.button = def;
+    m.userData.canvas = s;
+    m.userData.flash = 0;
+    board.add(m);
+    targets.push(m);
+    buttons.push(m);
+  });
+  function drawButton(m) {
+    var def = m.userData.button, s = m.userData.canvas, ctx = s.ctx;
+    var on = def.kind === 'toggle' ? state[def.key] : (def.kind === 'gun' ? state.weapon === def.gun : false);
+    var colors = { spawn: '#e08a1e', danger: '#c0392b', gun: on ? '#2f9be0' : '#2a3a4c', toggle: on ? '#2fae5b' : '#3a4048' };
+    ctx.clearRect(0, 0, 256, 116);
+    ctx.fillStyle = m.userData.flash > 0 ? '#ffffff' : colors[def.kind];
+    roundRect(ctx, 4, 4, 248, 108, 18); ctx.fill();
+    ctx.fillStyle = m.userData.flash > 0 ? '#111' : '#ffffff';
+    ctx.font = 'bold 40px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(def.label, 128, 66);
+    if (def.kind === 'toggle' || def.kind === 'gun') {
+      ctx.font = 'bold 20px sans-serif';
+      ctx.fillText(def.kind === 'toggle' ? (on ? 'ON' : 'OFF') : (on ? 'EQUIPPED' : ''), 128, 96);
+    }
+    s.tex.needsUpdate = true;
+  }
+  function drawBoard() { buttons.forEach(drawButton); }
+  function pressButton(m) {
+    m.userData.flash = 0.15;
+    drawButton(m);
+    sfx.beep();
+    m.userData.button.act();
+    drawBoard();
+  }
+
+  var scoreCanvas = canvasTexture(256, 128, function () {});
+  var scoreboard = new THREE.Mesh(new THREE.PlaneBufferGeometry(1.2, 0.6), new THREE.MeshBasicMaterial({ map: scoreCanvas.tex }));
+  scoreboard.position.set(2.1, 1.95, -2.6);
+  scoreboard.rotation.y = -0.65;
+  scene.add(scoreboard);
+  var scoreDirty = true;
+  function drawScoreboard() {
+    var ctx = scoreCanvas.ctx, s = state.stats;
+    ctx.fillStyle = '#0d141c'; ctx.fillRect(0, 0, 256, 128);
+    ctx.strokeStyle = '#ffb52e'; ctx.lineWidth = 4; ctx.strokeRect(2, 2, 252, 124);
+    ctx.fillStyle = '#ffb52e'; ctx.font = 'bold 20px monospace'; ctx.textAlign = 'center';
+    ctx.fillText('GO RANGE', 128, 26);
+    ctx.textAlign = 'left'; ctx.font = 'bold 17px monospace'; ctx.fillStyle = '#e8eef5';
+    var acc = s.shots ? Math.round(100 * s.hits / s.shots) : 0;
+    ctx.fillText('SHOTS     ' + s.shots, 18, 54);
+    ctx.fillText('HITS      ' + s.hits + '  (' + acc + '%)', 18, 76);
+    ctx.fillText('HEADSHOTS ' + s.heads, 18, 98);
+    ctx.fillText('BOOMS     ' + s.booms, 18, 120);
+    scoreCanvas.tex.needsUpdate = true;
+    scoreDirty = false;
+  }
+
+  // =========================================================================
+  // 11. INPUT
+  // =========================================================================
+  function onTriggerDown() {
+    if (!state.started) return;
+    audioInit();
+    state.triggerHeld = true;
+    state.dryClicked = false;
+    tryFire();
+  }
+  function onTriggerUp() { state.triggerHeld = false; webRelease(); }
+
+  // --- VR controller ---
+  // getController(0) = an object that follows wherever the controller points.
+  var controller = renderer.xr.getController(0);
+  controller.addEventListener('selectstart', onTriggerDown);
+  controller.addEventListener('selectend', onTriggerUp);
+  controller.addEventListener('connected', function (e) { controller.userData.source = e.data; });
+  controller.addEventListener('disconnected', function () { controller.userData.source = null; });
+  rig.add(controller);
+
+  // FLICK-TO-RELOAD: a tiny gesture recogniser.
+  // The Go only knows the controller's ANGLE, so we watch the pitch (up/down angle):
+  // point down past -50 degrees, then back up past -15 within 0.8 s = reload.
+  var flick = { downAt: -1 };
+  function updateFlick() {
+    controller.getWorldQuaternion(tmpQ);
+    tmpV.set(0, 0, -1).applyQuaternion(tmpQ);
+    var pitch = Math.asin(clamp(tmpV.y, -1, 1)) * 180 / Math.PI;
+    if (pitch < -50) {
+      if (flick.downAt < 0) flick.downAt = gameTime;
+    } else if (pitch > -15 && flick.downAt >= 0) {
+      if (gameTime - flick.downAt < 0.8) startReload();
+      flick.downAt = -1;
+    }
+  }
+
+  // TOUCHPAD - two kinds of input on the same pad:
+  //   TOUCH (thumb resting, no click) = walk. Up = forward, down = back, sides = strafe.
+  //   CLICK = actions: centre = next gun, bottom = reload, left/right edge = snap turn.
+  // The pad reports where your thumb is as two numbers from -1 to 1 (x, y).
+  // Careful: on gamepads, y = -1 is the TOP of the pad.
+  var padWasDown = false;
+  var pad = { x: 0, y: 0 };
+  function readPad(gp) {
+    var ax = gp.axes || [];
+    pad.x = ax.length >= 2 ? ax[0] : 0;
+    pad.y = ax.length >= 2 ? ax[1] : 0;
+    if (ax.length >= 4 && pad.x === 0 && pad.y === 0) { pad.x = ax[2]; pad.y = ax[3]; }
+  }
+  function pollTouchpad(dt) {
+    var src = controller.userData.source;
+    var gp = src && src.gamepad;
+    if (!gp) return;
+    readPad(gp);
+    var down = false;
+    for (var i = 1; i < gp.buttons.length; i++) if (gp.buttons[i] && gp.buttons[i].pressed) down = true;
+    if (down && !padWasDown) {
+      if (pad.y > 0.55) startReload();
+      else if (pad.x < -0.6) snapTurn(1);
+      else if (pad.x > 0.6) snapTurn(-1);
+      else nextWeapon();
+    }
+    padWasDown = down;
+    // Walk only while touching (not clicking), with a dead zone so a resting thumb doesn't drift
+    if (!down && Math.sqrt(pad.x * pad.x + pad.y * pad.y) > 0.25) {
+      // "forward" = the way your HEAD is facing, flattened onto the floor
+      camera.getWorldDirection(tmpV);
+      walk(-pad.y, pad.x, tmpV, WALK_SPEED, dt);
+    }
+  }
+  function snapTurn(dir) {
+    // Spin the whole rig around your head, so you turn on the spot
+    camera.getWorldPosition(tmpV);
+    var a = dir * SNAP_TURN * Math.PI / 180;
+    rig.position.sub(tmpV).applyAxisAngle(UP, a).add(tmpV);
+    rig.rotation.y += a;
+    sfx.click();
+  }
+
+  // ---- MOVEMENT (shared by VR + desktop) ----
+  // forward/strafe are -1..1, look = the direction you're facing
+  var UP = new THREE.Vector3(0, 1, 0);
+  var moveFwd = new THREE.Vector3(), moveRight = new THREE.Vector3();
+  function walk(forward, strafe, look, speed, dt) {
+    if (player.airborne) return;          // no air-walking (yet)
+    moveFwd.set(look.x, 0, look.z);
+    if (moveFwd.lengthSq() < 1e-6) return;     // looking straight down: no idea which way is forward
+    moveFwd.normalize();
+    moveRight.set(-moveFwd.z, 0, moveFwd.x);   // forward rotated 90 degrees = right
+    var step = speed * dt;
+    var nx = rig.position.x + (moveFwd.x * forward + moveRight.x * strafe) * step;
+    var nz = rig.position.z + (moveFwd.z * forward + moveRight.z * strafe) * step;
+    var fixed = collide(nx, nz);
+    rig.position.x = fixed.x;
+    rig.position.z = fixed.z;
+  }
+  // Circle-vs-rectangle collision: if you'd end up inside a wall/table,
+  // push you back out along the shortest way.
+  function collide(x, z, radius) {
+    var R = radius || PLAYER_RADIUS;
+    for (var i = 0; i < solids.length; i++) {
+      var s = solids[i];
+      var cx = clamp(x, s.x1, s.x2), cz = clamp(z, s.z1, s.z2);   // closest point of the box to you
+      var dx = x - cx, dz = z - cz, d2 = dx * dx + dz * dz;
+      if (d2 >= R * R) continue;                                  // not touching
+      if (d2 > 1e-8) {
+        var d = Math.sqrt(d2);
+        x = cx + dx / d * R; z = cz + dz / d * R;
+      } else {
+        // centre is inside the box: shove out of the nearest side
+        var opts = [[s.x1 - R - x, 0], [s.x2 + R - x, 0], [0, s.z1 - R - z], [0, s.z2 + R - z]];
+        opts.sort(function (a, b) { return Math.abs(a[0] + a[1]) - Math.abs(b[0] + b[1]); });
+        x += opts[0][0]; z += opts[0][1];
+      }
+    }
+    return { x: clamp(x, -5.7, 5.7), z: clamp(z, -25.9, 13.8) };   // stay inside the range + back room
+  }
+  // Walk into crates and cans to kick them around
+  var feet = new THREE.Vector3();
+  function kickProps() {
+    if (rig.position.y > PLAYER_HEIGHT + 0.6) return;   // flying over things doesn't kick them
+    camera.getWorldPosition(feet);
+    props.forEach(function (p) {
+      var b = p.body;
+      if (b.position.y > 1.0 || p.type === 'mag' && b.position.y > 0.3) return;
+      var dx = b.position.x - feet.x, dz = b.position.z - feet.z, d = Math.sqrt(dx * dx + dz * dz);
+      var reach = PLAYER_RADIUS + (p.type === 'dummy' ? 0.3 : 0.2);
+      if (d > reach || d < 1e-4 || gameTime - (p.kickT || 0) < 0.2) return;
+      p.kickT = gameTime;
+      b.wakeUp();
+      var push = Math.min(4.5, 5 / Math.sqrt(b.mass));   // heavy things move less
+      b.velocity.x += dx / d * push; b.velocity.z += dz / d * push; b.velocity.y += 1.2;
+    });
+    kickNpcs(feet);
+  }
+
+  // --- Desktop: mouse look + keyboard ---
+  var yaw = 0, pitch = 0;
+  function locked() { return document.pointerLockElement === renderer.domElement; }
+  document.addEventListener('mousemove', function (e) {
+    if (!locked()) return;
+    yaw -= e.movementX * 0.0022;
+    pitch = clamp(pitch - e.movementY * 0.0022, -1.45, 1.45);
+  });
+  renderer.domElement.addEventListener('mousedown', function (e) {
+    if (!state.started || state.vr) return;
+    if (!locked()) { renderer.domElement.requestPointerLock(); return; }
+    if (e.button === 0) onTriggerDown();
+  });
+  document.addEventListener('mouseup', function (e) { if (e.button === 0) onTriggerUp(); });
+  var keys = {};
+  document.addEventListener('keyup', function (e) { keys[e.key.toLowerCase()] = false; if (e.key === 'Shift') keys.shift = false; });
+  document.addEventListener('keydown', function (e) {
+    keys[e.key.toLowerCase()] = true;
+    if (e.key === 'Shift') keys.shift = true;
+    if (!state.started || state.vr) return;
+    var k = e.key.toLowerCase();
+    if (k === 'r') startReload();
+    else if (k === '1') selectWeapon('pistol');
+    else if (k === '2') selectWeapon('rifle');
+    else if (k === '3') selectWeapon('shotgun');
+    else if (k === 'q') nextWeapon();
+    else if (k === 'e') startReload();
+    else if (k === '4') selectWeapon('web');
+    else if (k === '5') selectWeapon('rope');
+    else if (k === 'c') cutAllWebs();
+  });
+  document.addEventListener('pointerlockchange', function () {
+    document.getElementById('crosshair').style.display = locked() ? 'block' : 'none';
+    // Esc releases the mouse -> pause and show the menu again
+    if (!locked() && state.started && !state.vr) {
+      state.started = false; state.triggerHeld = false;
+      deskBtn.textContent = 'RESUME';
+      showOverlay();
+    }
+  });
+
+  // =========================================================================
+  // 12. STARTING VR / DESKTOP
+  // =========================================================================
+  var vrBtn = document.getElementById('vrBtn');
+  var deskBtn = document.getElementById('deskBtn');
+  var statusEl = document.getElementById('status');
+  function setStatus(t) { statusEl.textContent = t; }
+
+  function checkVR() {
+    if (!window.isSecureContext) {
+      setStatus('VR needs https:// or localhost (browsers block WebXR on plain http). Desktop mode works.');
+      return;
+    }
+    if (!navigator.xr) { setStatus('No WebXR in this browser. Desktop mode only (use the Oculus Browser on the Go).'); return; }
+    var check = navigator.xr.isSessionSupported ? navigator.xr.isSessionSupported('immersive-vr')
+      : (navigator.xr.supportsSession ? navigator.xr.supportsSession('immersive-vr').then(function () { return true; }, function () { return false; })
+        : Promise.resolve(true));
+    check.then(function (ok) {
+      if (ok) { vrBtn.style.display = 'inline-block'; setStatus('VR headset found. Hit ENTER VR!'); }
+      else setStatus('WebXR is here but no VR headset was found. Desktop mode it is.');
+    }).catch(function () { vrBtn.style.display = 'inline-block'; setStatus('Could not check for VR, try ENTER VR anyway.'); });
+  }
+
+  function hideOverlay() { document.getElementById('overlay').style.display = 'none'; }
+  function showOverlay() { document.getElementById('overlay').style.display = 'flex'; }
+
+  vrBtn.addEventListener('click', function () {
+    audioInit();
+    navigator.xr.requestSession('immersive-vr', { optionalFeatures: ['local-floor'] }).then(function (session) {
+      session.addEventListener('end', onVREnd);
+      return renderer.xr.setSession(session).then(onVRStart);
+    }).catch(function (e) { setStatus('Could not start VR: ' + (e && e.message ? e.message : e)); });
+  });
+  function onVRStart() {
+    state.vr = true; state.started = true;
+    controller.add(gunMount);
+    placeGunMount();
+    hideOverlay();
+    document.getElementById('hint').style.display = 'none';
+    WEAPON_ORDER.forEach(drawGunScreen);
+  }
+  function onVREnd() {
+    state.vr = false; state.started = false; state.triggerHeld = false;
+    camera.add(gunMount);
+    placeGunMount();
+    camera.position.set(0, 0, 0);
+    rig.rotation.y = 0;
+    showOverlay();
+    WEAPON_ORDER.forEach(drawGunScreen);
+  }
+
+  deskBtn.addEventListener('click', function () {
+    audioInit();
+    if (deskBtn.textContent !== 'RESUME') { yaw = 0; pitch = 0; }   // first start: face downrange
+    state.started = true;
+    hideOverlay();
+    document.getElementById('hint').style.display = 'block';
+    renderer.domElement.requestPointerLock();
+  });
+  // =========================================================================
+  // 13. THE GAME LOOP - runs ~72 times a second on the Go
+  // =========================================================================
+  camera.add(gunMount);
+  buildDefaultLayout();
+  selectWeapon('pistol');
+  drawScoreboard();
+  checkVR();
+
+  var clock = new THREE.Clock();
+  var boardTimer = 0;
+  renderer.setAnimationLoop(function () {
+    var dtReal = Math.min(clock.getDelta(), 0.05);
+    var dt = dtReal * state.timeScale;    // slow-mo slows the world, not your gun hands
+    gameTime += dtReal;
+
+    if (!state.vr) {
+      if (!state.started) { yaw = Math.sin(gameTime * 0.15) * 0.25; pitch = -0.05; }
+      camera.rotation.set(pitch, yaw, 0);
+    }
+
+    // physics: fixed-size steps (1/60 s, shrunk in slow-mo so it stays smooth),
+    // with up to 3 catch-up steps if a frame was slow
+    updateNpcs(dt);   // NPCs walk / ragdolls follow their bodies
+    world.step(state.timeScale / 60, dt, 3);
+    for (var i = props.length - 1; i >= 0; i--) {
+      var p = props[i];
+      syncProp(p);
+      if (p.body.position.y < -15) removeProp(p);  // fell out of the world
+    }
+
+    // scheduled jobs (chain reactions, pump action)
+    for (var j = jobs.length - 1; j >= 0; j--) {
+      if (gameTime >= jobs[j].at) { var job = jobs[j]; jobs.splice(j, 1); job.fn(); }
+    }
+
+    if (state.started && state.triggerHeld && WEAPONS[state.weapon].auto) tryFire();
+    updateReload(dtReal);
+    updateGunAnim(dtReal);
+    updateFx(dt);
+    if (state.vr) { updateFlick(); pollTouchpad(dtReal); }
+    else if (state.started) {
+      // WASD: W/S = forward/back, A/D = strafe, relative to where the mouse is looking
+      var f = (keys.w ? 1 : 0) - (keys.s ? 1 : 0), st = (keys.d ? 1 : 0) - (keys.a ? 1 : 0);
+      if (f || st) {
+        var len = Math.sqrt(f * f + st * st);   // so diagonal isn't faster (classic game bug!)
+        tmpV.set(-Math.sin(yaw), 0, -Math.cos(yaw));
+        walk(f / len, st / len, tmpV, keys.shift ? SPRINT_SPEED : WALK_SPEED, dtReal);
+      }
+    }
+    if (state.started) kickProps();
+    updatePlayer(dt);
+    updateWebs(dtReal);
+    updateLaser();
+
+    boardTimer += dtReal;
+    if (boardTimer > 0.05) {
+      boardTimer = 0;
+      buttons.forEach(function (b) {
+        if (b.userData.flash > 0) { b.userData.flash -= 0.05; if (b.userData.flash <= 0) drawButton(b); }
+      });
+      if (scoreDirty) drawScoreboard();
+    }
+    renderer.render(scene, camera);
+  });
+
+  // A tiny debug handle: open the browser console and type GoRange.state
+  window.GoRange = {
+    state: state, props: props, fire: function () { onTriggerDown(); onTriggerUp(); },
+    reload: startReload, weapon: selectWeapon, spawn: SPAWN, reset: resetRange,
+    press: function (label) { buttons.forEach(function (b) { if (b.userData.button.label === label) pressButton(b); }); },
+    aimAt: function (x, y, z) { // desktop helper: point the camera at a spot
+      var d = new THREE.Vector3(x, y, z).sub(camera.getWorldPosition(new THREE.Vector3()));
+      yaw = Math.atan2(-d.x, -d.z); pitch = Math.atan2(d.y, Math.sqrt(d.x * d.x + d.z * d.z));
+    },
+    start: function () { state.started = true; hideOverlay(); },
+    rig: rig, keys: keys, controller: controller, npcs: npcs, npcSpawn: NPC_SPAWN, flop: flopAll,
+    webFire: webFire, webRelease: webRelease, ropes: ropes, player: player, cut: cutAllWebs,
+    grabbed: function () { return grab; }, zipping: function () { return zip; }
+  };
+})();
+</script>
+</body>
+</html>
