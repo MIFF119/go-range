@@ -69,7 +69,8 @@
         <h3>IN VR (OCULUS GO)</h3>
         <ul>
           <li>You start with a <b>HAND</b>. Point + hold trigger = grab (guns, people, crates...). Swing + let go = <b>throw</b></li>
-          <li><b>Weapons table</b> on your right: grab a gun, RPG, knife, axe, sword, nade or rock</li>
+          <li><b>Weapons table</b> on your right: grab a gun, RPG, knife, axe, sword, nade or rock. <b>Gun rack</b> on your left: SMG, .44 revolver, sniper, a long frying pan, and a bin lid (on the bin) to block bullets</li>
+          <li>Mannequins <b>talk</b>: point a gun at someone and they'll say something, then react. Walk past people for small talk</li>
           <li><b>Click touchpad centre</b> = drop what you're holding (empty hand: hand / web / rope)</li>
           <li><b>Trigger</b> = shoot &middot; <b>flick down + up</b> or <b>click pad bottom</b> = reload &middot; pad edges = turn</li>
           <li><b>Thumb on touchpad</b> (no click) = walk</li>
@@ -81,6 +82,7 @@
           <li><b>The bad guy house</b> (end of the street, red bandanas): armed gang + a cash stash. They warn you once</li>
           <li><b>Rob the shops</b>: aim a gun at the dairy owner or the BUN RUN worker. They hand over cash, refuse, or fight. Refused? Warning shots or shoot their hand</li>
           <li>Board on your <b>left</b>: shoot or point + trigger to spawn stuff</li>
+          <li><b>Throw</b> an axe, knife, sword, pan or bin lid: flick your hand + click the pad. It homes in on whoever has the <b>red marker</b> over their head</li>
           <li>Walk right past the table: <b>the town</b> (burger joint, dairy, house). Back room is behind you</li>
         </ul>
       </div>
@@ -92,6 +94,7 @@
           <li><b>WASD</b> = walk &middot; <b>Shift</b> = sprint</li>
           <li><b>G</b> = drop (aim at a mannequin = give it to them) &middot; <b>R</b> or <b>E</b> = reload &middot; <b>Q</b> = hand / web / rope</li>
           <li><b>1</b> = hand &middot; <b>4</b> = web &middot; <b>5</b> = rope &middot; <b>C</b> = cut all webs</li>
+          <li><b>T</b> = throw your axe / knife / sword / pan / bin lid (auto-aims at the red marker) &middot; <b>F</b> poke &middot; <b>V</b> slap</li>
           <li><b>Esc</b> = free your mouse</li>
         </ul>
       </div>
@@ -143,9 +146,18 @@
     rifle:   { name: 'AR-15',   mag: 30, auto: true,  rate: 0.095, pellets: 1, spread: 0.007,
                impulse: 6,   reload: 1.7, recoil: 0.035, offset: [0.15, -0.17, -0.14],
                snd: { hi: 2600, lo: 120, len: 0.25, vol: 0.85 } },
-    shotgun: { name: 'PUMP-12', mag: 6,  auto: false, rate: 0.75, pellets: 9, spread: 0.055,
+    shotgun: { name: 'PUMP-12', mag: 6,  auto: false, rate: 0.75, pellets: 9, spread: 0.055, shells: true, pump: true,
                impulse: 2.6, reload: 0,   recoil: 0.11, offset: [0.17, -0.19, -0.08],
                snd: { hi: 1800, lo: 90, len: 0.4, vol: 1.0 } },
+    smg:     { name: 'MP-9',    mag: 32, auto: true,  rate: 0.065, pellets: 1, spread: 0.013,
+               impulse: 3.5, reload: 1.4, recoil: 0.022, offset: [0.16, -0.17, -0.24],
+               snd: { hi: 3600, lo: 180, len: 0.16, vol: 0.7 } },
+    revolver: { name: '.44 MAG', mag: 6, auto: false, rate: 0.34, pellets: 1, spread: 0.003, shells: true,
+               impulse: 9,   reload: 0,   recoil: 0.14, offset: [0.16, -0.16, -0.32],
+               snd: { hi: 1500, lo: 70, len: 0.45, vol: 1.0 } },
+    sniper:  { name: 'BOLT-308', mag: 5, auto: false, rate: 1.0, pellets: 1, spread: 0.0004, shells: true, pump: true,
+               impulse: 14,  reload: 0,   recoil: 0.17, offset: [0.15, -0.18, 0.0],
+               snd: { hi: 1300, lo: 55, len: 0.6, vol: 1.0 } },
     rpg:     { name: 'RPG',     mag: 1,  auto: false, rate: 0.6, pellets: 0, rocket: true,
                impulse: 0,   reload: 2.2, recoil: 0.2,  offset: [0.2, -0.2, -0.05] },
     // spider tools (section 9b): no ammo, no reload
@@ -158,13 +170,16 @@
                offset: [0.17, -0.2, -0.45] },
     axe:     { name: 'AXE',   melee: true, dmg: 70, cutSpeed: 3.5, impulse: 9, chops: true, offset: [0.17, -0.22, -0.45] },
     sword:   { name: 'SWORD', melee: true, dmg: 55, cutSpeed: 3,   impulse: 6, chops: true, offset: [0.17, -0.22, -0.35] },
+    // blunt = bonks instead of cuts (KOs on the head). shield = blocks bullets + punches.
+    pan:     { name: 'FRYING PAN', melee: true, blunt: true, dmg: 30, cutSpeed: 99, impulse: 14, offset: [0.17, -0.22, -0.3] },
+    lid:     { name: 'BIN LID', melee: true, blunt: true, shield: true, dmg: 12, cutSpeed: 99, impulse: 16, offset: [0.18, -0.27, -0.38] },
     grenade: { name: 'NADE',  throwable: true, offset: [0.17, -0.2, -0.32] },
     spawner: { name: 'SPAWN GUN', spawner: true, offset: [0.17, -0.19, -0.3] },
     rock:    { name: 'ROCK',  throwable: true, offset: [0.17, -0.2, -0.32] }
   };
-  var WEAPON_ORDER = ['pistol', 'rifle', 'shotgun', 'rpg', 'web', 'rope', 'hand', 'knife', 'axe', 'sword', 'grenade', 'rock', 'spawner'];
+  var WEAPON_ORDER = ['pistol', 'rifle', 'shotgun', 'smg', 'revolver', 'sniper', 'rpg', 'web', 'rope', 'hand', 'knife', 'axe', 'sword', 'pan', 'lid', 'grenade', 'rock', 'spawner'];
   // Things that exist as real objects in the world: you pick them up, drop them, throw them.
-  var ITEM_KINDS = ['pistol', 'rifle', 'shotgun', 'rpg', 'knife', 'axe', 'sword', 'grenade', 'rock', 'spawner'];
+  var ITEM_KINDS = ['pistol', 'rifle', 'shotgun', 'smg', 'revolver', 'sniper', 'rpg', 'knife', 'axe', 'sword', 'pan', 'lid', 'grenade', 'rock', 'spawner'];
   var TOOL_CYCLE = ['hand', 'web', 'rope'];   // what a centre-click cycles through with an empty hand
   function isGun(kind) { return WEAPONS[kind].mag > 0; }
   function isItem(kind) { return ITEM_KINDS.indexOf(kind) !== -1; }
@@ -173,10 +188,10 @@
   var state = {
     started: false, vr: false,
     weapon: 'hand',
-    ammo: { pistol: 17, rifle: 30, shotgun: 6, rpg: 1 },
+    ammo: { pistol: 17, rifle: 30, shotgun: 6, smg: 32, revolver: 6, sniper: 5, rpg: 1 },
     reloading: null,           // reload-in-progress info, or null
     triggerHeld: false, dryClicked: false, lastShot: -1,
-    laser: true, slowmo: false, moon: false, timeScale: 1,
+    laser: true, slowmo: false, moon: false, blood: true, timeScale: 1,
     stats: { shots: 0, hits: 0, heads: 0, booms: 0, kos: 0, chops: 0, deaths: 0, robs: 0 },
     hp: 100, dead: false, deadT: 0, lastHurt: -10, hurtFlash: 0,
     cash: 0
@@ -196,9 +211,9 @@
 
   var scene = new THREE.Scene();
   scene.background = new THREE.Color(0x9cc8ea);
-  scene.fog = new THREE.Fog(0x9cc8ea, 30, 75);
+  scene.fog = new THREE.Fog(0xcfe0ec, 40, 125);     // matches the sky's horizon colour, so far things melt into it
 
-  var camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.03, 150);
+  var camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.03, 260);
   camera.rotation.order = 'YXZ'; // yaw first, then pitch: stops the view rolling sideways
 
   // The "rig" is your body. In VR the headset moves the camera *inside* the rig,
@@ -208,8 +223,9 @@
   rig.add(camera);
   scene.add(rig);
 
-  scene.add(new THREE.HemisphereLight(0xe4f2ff, 0x6b5a45, 0.95));
-  var sun = new THREE.DirectionalLight(0xffffff, 0.75);
+  // sky light from above + warm sunlight from one side = faces of boxes get different shades
+  scene.add(new THREE.HemisphereLight(0xdcecff, 0x5e5040, 0.78));
+  var sun = new THREE.DirectionalLight(0xfff0d8, 0.95);
   sun.position.set(6, 12, 5);
   scene.add(sun);
 
@@ -376,10 +392,13 @@
   }
   var sfx = {
     shot: function (w) {
-      noise({ freq: w.snd.hi, freqEnd: 250, dur: w.snd.len, vol: w.snd.vol });
-      tone({ freq: w.snd.lo, freqEnd: 40, dur: 0.14, vol: 0.7 });
-      noise({ freq: 600, freqEnd: 120, dur: w.snd.len * 2.2, vol: 0.25, delay: 0.03 }); // echo off the range
+      noise({ type: 'highpass', freq: 4000, dur: 0.025, vol: w.snd.vol * 0.6 });           // the sharp crack
+      noise({ freq: w.snd.hi, freqEnd: 250, dur: w.snd.len, vol: w.snd.vol });             // the bang
+      tone({ freq: w.snd.lo, freqEnd: 35, dur: 0.18, vol: 0.8 });                          // the thump in your chest
+      noise({ freq: 600, freqEnd: 120, dur: w.snd.len * 2.2, vol: 0.25, delay: 0.03 });     // echo off the range
+      noise({ freq: 380, freqEnd: 90, dur: w.snd.len * 3, vol: 0.12, delay: 0.14 });        // ...and the far-away echo
     },
+    casing: function () { tone({ freq: rand(3800, 5200), dur: 0.04, vol: 0.06, wave: 'triangle' }); tone({ freq: rand(5200, 6400), dur: 0.03, vol: 0.04, wave: 'triangle', delay: 0.07 }); },
     click:  function () { tone({ freq: 2400, dur: 0.02, vol: 0.18, wave: 'square' }); },
     magOut: function () { noise({ type: 'bandpass', freq: 3200, q: 4, dur: 0.06, vol: 0.5 }); tone({ freq: 900, dur: 0.03, vol: 0.12, wave: 'triangle' }); },
     magIn:  function () { noise({ type: 'bandpass', freq: 1700, q: 3, dur: 0.08, vol: 0.8 }); tone({ freq: 260, dur: 0.06, vol: 0.3, wave: 'triangle' }); },
@@ -398,6 +417,16 @@
       tone({ freq: 380, freqEnd: 300, dur: 0.09, vol: 0.35, wave: 'triangle' });
     },
     tink:   function () { tone({ freq: 3800, dur: 0.08, vol: 0.06, wave: 'triangle' }); },
+    slap:   function () { noise({ type: 'highpass', freq: 1800, dur: 0.05, vol: 0.9 }); noise({ type: 'bandpass', freq: 900, q: 1.5, dur: 0.08, vol: 0.5 }); },
+    bong:   function () {   // frying pan to the head: a big ringing BONNNG
+      noise({ type: 'bandpass', freq: 1800, q: 3, dur: 0.05, vol: 0.8 });
+      tone({ freq: 523, dur: 1.1, vol: 0.4, wave: 'triangle' }); tone({ freq: 1307, dur: 0.7, vol: 0.12 });
+      tone({ freq: 2093, dur: 0.45, vol: 0.06 }); tone({ freq: 330, freqEnd: 300, dur: 0.5, vol: 0.18 });
+    },
+    clang:  function () {   // bin lid: a tinny crash
+      noise({ type: 'bandpass', freq: 3000, q: 2, dur: 0.18, vol: 0.7 });
+      tone({ freq: 880, dur: 0.35, vol: 0.12, wave: 'triangle' }); tone({ freq: 1240, dur: 0.25, vol: 0.08, wave: 'triangle' });
+    },
     boom:   function () {
       noise({ freq: 1200, freqEnd: 60, dur: 1.6, vol: 1.0 });
       tone({ freq: 80, freqEnd: 25, dur: 0.8, vol: 0.9 });
@@ -453,21 +482,36 @@
   }
   var solids = [];
 
-  // Ground: sandy texture with faint noise
-  var groundTex = canvasTexture(256, 256, function (ctx, w, h) {
-    ctx.fillStyle = '#a3875c'; ctx.fillRect(0, 0, w, h);
-    for (var i = 0; i < 2600; i++) {
-      var s = Math.random() * 2 + 0.5, v = Math.floor(rand(120, 185));
-      ctx.fillStyle = 'rgba(' + v + ',' + Math.floor(v * 0.85) + ',' + Math.floor(v * 0.6) + ',0.5)';
-      ctx.fillRect(Math.random() * w, Math.random() * h, s, s);
-    }
-  }).tex;
-  groundTex.wrapS = groundTex.wrapT = THREE.RepeatWrapping;
-  groundTex.repeat.set(40, 40);
-  var ground = new THREE.Mesh(new THREE.PlaneBufferGeometry(140, 140),
-    new THREE.MeshLambertMaterial({ map: groundTex }));
+  // ---- GROUND: grass everywhere, a sand pit for the range ----
+  // Textures are drawn with code (lots of random specks), then TILED: one small picture
+  // repeated many times costs the same as drawing it once.
+  function speckTex(base, n, specks, size) {
+    var t = canvasTexture(size || 256, size || 256, function (ctx, w, h) {
+      ctx.fillStyle = base; ctx.fillRect(0, 0, w, h);
+      for (var i = 0; i < n; i++) {
+        var sp = pick(specks), s = Math.random() * sp[1] + 0.6;
+        ctx.fillStyle = sp[0]; ctx.globalAlpha = rand(0.25, 0.7);
+        ctx.fillRect(Math.random() * w, Math.random() * h, s, s * (sp[2] || 1));
+      }
+      ctx.globalAlpha = 1;
+    }).tex;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    return t;
+  }
+  var grassTex = speckTex('#6b8a45', 5200, [['#87a85a', 2, 3], ['#4f6b33', 2, 3], ['#9bb86a', 1.5, 4], ['#7a6a45', 2]]);
+  grassTex.repeat.set(70, 70);
+  var ground = new THREE.Mesh(new THREE.PlaneBufferGeometry(260, 260), new THREE.MeshLambertMaterial({ map: grassTex }));
   ground.rotation.x = -Math.PI / 2;
   scene.add(ground);
+  var sandTex = speckTex('#a3875c', 2600, [['#b89a6a', 2], ['#8a7048', 2], ['#c9ad7c', 1.5]]);
+  sandTex.repeat.set(6, 13);
+  var sandPit = new THREE.Mesh(new THREE.PlaneBufferGeometry(14, 33), new THREE.MeshLambertMaterial({ map: sandTex }));
+  sandPit.rotation.x = -Math.PI / 2; sandPit.position.set(0, 0.003, -12.2);
+  scene.add(sandPit);
+  var sandBack = new THREE.Mesh(new THREE.PlaneBufferGeometry(12.4, 13), new THREE.MeshLambertMaterial({ map: sandTex }));
+  sandBack.rotation.x = -Math.PI / 2; sandBack.position.set(0, 0.003, 10.5);
+  scene.add(sandBack);
+  targets.push(sandPit, sandBack);
   targets.push(ground);
   var groundBody = new CANNON.Body({ mass: 0, collisionFilterMask: -1 });
   groundBody.addShape(new CANNON.Plane());
@@ -547,6 +591,21 @@
   scene.add(weaponSignMesh);
   addStatic(0.06, 0.42, 0.06, 2.35, 1.14, -1.62, 0x3d2f20, false);     // sign posts
   addStatic(0.06, 0.42, 0.06, 3.65, 1.14, -1.62, 0x3d2f20, false);
+  // ...and a second gun rack on the LEFT of the bench (SMG, revolver, sniper)
+  addStatic(1.6, 0.06, 1.1, -2.2, 0.9, -1.0, 0x5b4630);
+  addStatic(1.4, 0.87, 0.9, -2.2, 0.435, -1.0, 0x3d2f20, false);
+  // A metal rubbish bin by the left gun rack. Its lid is a weapon (well, a shield).
+  var BIN_SPOT = [-3.45, -1.0];
+  var binMesh = addStatic(0.48, 0.78, 0.48, BIN_SPOT[0], 0.39, BIN_SPOT[1], 0x8e979f, true, true);
+  binMesh.geometry = mergeShapes([
+    { geo: new THREE.CylinderBufferGeometry(0.24, 0.215, 0.78, 16), p: [0, 0, 0], c: 0x9aa3ab },
+    { geo: new THREE.CylinderBufferGeometry(0.247, 0.247, 0.035, 16), p: [0, 0.2, 0], c: 0x7d868e },     // ridges
+    { geo: new THREE.CylinderBufferGeometry(0.236, 0.236, 0.035, 16), p: [0, -0.2, 0], c: 0x7d868e },
+    { geo: new THREE.CylinderBufferGeometry(0.25, 0.25, 0.03, 16), p: [0, 0.375, 0], c: 0x6f777e },      // top rim
+    { geo: new THREE.BoxBufferGeometry(0.05, 0.03, 0.09), p: [0.26, 0.28, 0], c: 0x6f777e },              // side handles
+    { geo: new THREE.BoxBufferGeometry(0.05, 0.03, 0.09), p: [-0.26, 0.28, 0], c: 0x6f777e }
+  ]);
+  binMesh.material = VC_MAT;
   // Endless supplies: grab from the crate = a grenade in your hand. Same for the rock pile.
   var nadeBox = addStatic(0.42, 0.16, 0.32, 4.25, 1.01, -1.22, 0x4b5320, true, true);
   nadeBox.userData.supply = 'grenade';
@@ -645,7 +704,18 @@
   }
 
   // ---- the street ----
-  decoBox(27.4, 0.01, 5, 20.3, 0.005, 1.5, 0x3a3d42);                   // asphalt
+  var asphaltTex = speckTex('#3a3d42', 5000, [['#55585e', 1.5], ['#2a2c30', 2], ['#6a6d73', 1], ['#222326', 6, 0.15]]);
+  asphaltTex.repeat.set(14, 2.5);
+  var road = new THREE.Mesh(new THREE.PlaneBufferGeometry(27.4, 5), new THREE.MeshLambertMaterial({ map: asphaltTex }));
+  road.rotation.x = -Math.PI / 2; road.position.set(20.3, 0.006, 1.5);
+  scene.add(road); targets.push(road);
+  var concreteTex = speckTex('#aaa69d', 1800, [['#bdb9b0', 1.5], ['#8e8a82', 1.5], ['#7a766e', 30, 0.04]]);
+  concreteTex.repeat.set(20, 1);
+  [-1.7, 4.7].forEach(function (z) {
+    var fp = new THREE.Mesh(new THREE.PlaneBufferGeometry(27.4, 1.4), new THREE.MeshLambertMaterial({ map: concreteTex }));
+    fp.rotation.x = -Math.PI / 2; fp.position.set(20.3, 0.031, z);
+    scene.add(fp);
+  });
   for (var dx = 8; dx < 34; dx += 2.2) decoBox(1.1, 0.012, 0.12, dx, 0.008, 1.5, 0xe8d36a);   // centre line
   decoBox(27.4, 0.03, 1.4, 20.3, 0.015, -1.7, 0xa9a59c);                // footpath (north)
   decoBox(27.4, 0.03, 1.4, 20.3, 0.015, 4.7, 0xa9a59c);                 // footpath (south)
@@ -840,6 +910,73 @@
   wallBox(0.2, 0.9, 0.2, 25.1, 0.45, 7.0, 0x6b5f52);           // broken fence posts
   wallBox(0.2, 0.9, 0.2, 32.9, 0.45, 7.0, 0x6b5f52);
   flushBatches();
+
+  // =========================================================================
+  // 6c. SKY + SCENERY
+  // A big ball around you, painted with a gradient (deep blue up top, pale at the
+  // horizon), a glowing sun where the sunlight comes from, a few clouds, hills on
+  // the horizon and a ring of trees outside the fences. All cheap: a handful of meshes.
+  // =========================================================================
+  var skyGeo = new THREE.SphereBufferGeometry(200, 24, 12);
+  var skyCols = [], skyC = new THREE.Color(), skyTop = new THREE.Color(0x3f86d1), skyHor = new THREE.Color(0xcfe0ec), skyLow = new THREE.Color(0xb8c9a8);
+  for (var si = 0; si < skyGeo.attributes.position.count; si++) {
+    var sy = skyGeo.attributes.position.getY(si) / 200;
+    if (sy > 0) skyC.copy(skyHor).lerp(skyTop, Math.pow(sy, 0.55)); else skyC.copy(skyHor).lerp(skyLow, Math.min(1, -sy * 4));
+    skyCols.push(skyC.r, skyC.g, skyC.b);
+  }
+  skyGeo.setAttribute('color', new THREE.Float32BufferAttribute(skyCols, 3));
+  var sky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false }));
+  sky.renderOrder = -10;
+  scene.add(sky);
+  scene.background = null;
+  function glowTex(inner, outer) {
+    return canvasTexture(128, 128, function (ctx) {
+      var g = ctx.createRadialGradient(64, 64, 0, 64, 64, 63);
+      g.addColorStop(0, inner); g.addColorStop(0.18, inner); g.addColorStop(0.3, outer); g.addColorStop(1, 'rgba(255,240,200,0)');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, 128, 128);
+    }).tex;
+  }
+  var sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex('rgba(255,252,235,1)', 'rgba(255,236,180,0.35)'), fog: false, depthWrite: false, transparent: true }));
+  sunSprite.scale.set(46, 46, 1);
+  sky.add(sunSprite);
+  sunSprite.position.copy(sun.position).normalize().multiplyScalar(180);
+  var cloudTex = canvasTexture(256, 128, function (ctx) {          // fluffy: lots of soft white circles
+    for (var i = 0; i < 26; i++) {
+      var x = 40 + Math.random() * 176, y = 50 + Math.random() * 40 - Math.abs(x - 128) * 0.15, r = 18 + Math.random() * 26;
+      var g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, 'rgba(255,255,255,0.9)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
+  }).tex;
+  [[-60, 70, -140, 70], [80, 62, -120, 58], [-130, 58, 40, 64], [110, 75, 90, 80], [10, 85, 150, 66]].forEach(function (c) {
+    var cl = new THREE.Sprite(new THREE.SpriteMaterial({ map: cloudTex, fog: false, depthWrite: false, transparent: true, opacity: 0.9 }));
+    cl.position.set(c[0], c[1], c[2]); cl.scale.set(c[3], c[3] * 0.45, 1);
+    sky.add(cl);
+  });
+  // hills on the horizon + trees outside the fences, glued into one mesh
+  var scenery = [];
+  for (var hi = 0; hi < 22; hi++) {
+    var ha = hi / 22 * Math.PI * 2 + rand(-0.1, 0.1), hr = rand(115, 140);
+    var hill = new THREE.SphereBufferGeometry(1, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2);
+    scenery.push({ geo: hill, p: [Math.cos(ha) * hr, -2, Math.sin(ha) * hr], s: [rand(18, 34), rand(8, 20), rand(18, 30)], c: pick([0x5d7a4a, 0x6b8a52, 0x557046]) });
+  }
+  function tree(x, z, sz) {
+    var trunk = new THREE.CylinderBufferGeometry(0.12 * sz, 0.18 * sz, 1.6 * sz, 6);
+    scenery.push({ geo: trunk, p: [x, 0.8 * sz, z], c: 0x5a4030 });
+    var pine = Math.random() < 0.5;
+    if (pine) {
+      [0, 1, 2].forEach(function (k) {
+        scenery.push({ geo: new THREE.ConeBufferGeometry((1.3 - k * 0.32) * sz, 1.5 * sz, 7), p: [x, (1.6 + k * 0.85) * sz, z], c: pick([0x2f5a35, 0x356640, 0x2a5030]) });
+      });
+    } else {
+      scenery.push({ geo: new THREE.IcosahedronBufferGeometry(1.25 * sz, 0), p: [x, 2.3 * sz, z], c: pick([0x4f7a3a, 0x5c8a42, 0x466e34]) });
+      scenery.push({ geo: new THREE.IcosahedronBufferGeometry(0.9 * sz, 0), p: [x + 0.5 * sz, 2.9 * sz, z - 0.3 * sz], c: pick([0x5c8a42, 0x6a9a4c]) });
+    }
+  }
+  for (var tx = -14; tx <= 40; tx += rand(3.2, 5)) { tree(tx, rand(-33, -30), rand(0.9, 1.4)); tree(tx + 1.5, rand(21, 25), rand(0.9, 1.4)); }   // behind + in front
+  for (var tz = -28; tz <= 20; tz += rand(3.2, 5)) { tree(rand(-12, -9), tz, rand(0.9, 1.4)); tree(rand(37, 40), tz, rand(0.9, 1.4)); }      // the sides
+  var sceneryMesh = new THREE.Mesh(mergeShapes(scenery), VC_MAT);
+  scene.add(sceneryMesh);
 
   // Where your HEAD can go inside buildings (ceil) and how high it is when you stand
   // on the roof (top). Used for web-swinging so you can't zip through ceilings.
@@ -1126,8 +1263,9 @@
 
   // ---- WEAPON ITEMS: real objects you pick up, drop and throw ----
   // Their look is the gun model squashed into a few meshes (flattenGroup), made once.
-  var ITEM_MASS = { pistol: 1, rifle: 3.5, shotgun: 3.5, rpg: 6, knife: 0.4, axe: 1.6, sword: 1.5, grenade: 0.4, rock: 1.2, spawner: 1.5 };
-  var ITEM_SPOTS = { pistol: 1.55, rifle: 1.86, shotgun: 2.17, rpg: 2.48, knife: 2.79, axe: 3.10, sword: 3.41, spawner: 3.76 };
+  var ITEM_MASS = { pistol: 1, rifle: 3.5, shotgun: 3.5, smg: 2.5, revolver: 1.3, sniper: 5, rpg: 6, knife: 0.4, axe: 1.6, sword: 1.5, pan: 2.2, lid: 1.6, grenade: 0.4, rock: 1.2, spawner: 1.5 };
+  // (negative x = the new gun rack on the LEFT of the bench)
+  var ITEM_SPOTS = { smg: -1.75, revolver: -2.15, sniper: -2.5, pistol: 1.55, rifle: 1.86, shotgun: 2.17, rpg: 2.48, knife: 2.79, axe: 3.10, sword: 3.41, spawner: 3.76, pan: -2.84, lid: 0 };
   var itemVisual = {};
   function spawnItem(kind, pos, quat, vel, type) {
     var vis = itemVisual[kind], box = vis.userData.box;
@@ -1148,8 +1286,10 @@
   function placeOnTable(kind) {
     var box = itemVisual[kind].userData.box, c = box.getCenter(new THREE.Vector3());
     // after rolling 90 degrees, the item's local X points up and its local Y points left
+    if (kind === 'lid') return spawnItem('lid', new THREE.Vector3(BIN_SPOT[0] - c.x, 0.795 + box.max.z, BIN_SPOT[1] - c.y), LID_Q);   // on top of the bin
     return spawnItem(kind, new THREE.Vector3(ITEM_SPOTS[kind] + c.y, 0.935 - box.min.x, -1.0 - c.z), ROLL_Q);
   }
+  var LID_Q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2);    // lying flat, dome up
   // RESTOCK: fresh weapons on the table + full ammo
   function restock() {
     Object.keys(ITEM_SPOTS).forEach(function (kind) {
@@ -1157,7 +1297,7 @@
       props.slice().forEach(function (p) { if (p.type === 'item' && p.kind === kind) removeProp(p); });
       placeOnTable(kind);
     });
-    ['pistol', 'rifle', 'shotgun', 'rpg'].forEach(function (k) { state.ammo[k] = WEAPONS[k].mag; });
+    ITEM_KINDS.forEach(function (k) { if (isGun(k)) state.ammo[k] = WEAPONS[k].mag; });
     if (state.weapon === 'rpg') guns.rpg.mag.visible = true;
     WEAPON_ORDER.forEach(drawGunScreen);
   }
@@ -1363,6 +1503,7 @@
     rockets.slice().forEach(removeRocket);
     decals.slice().forEach(function (d) { if (d.parent) d.parent.remove(d); });
     decals.length = 0;
+    clearBlood();
     state.stats = { shots: 0, hits: 0, heads: 0, booms: 0, kos: 0, chops: 0, deaths: 0, robs: 0 };
     state.hp = 100; state.dead = false; state.cash = 0;
     rig.position.set(0, PLAYER_HEIGHT, 0);   // RESET also walks you back to the bench
@@ -1408,7 +1549,7 @@
   var NPC_GROUP = 2;
   var npcs = [];
 
-  var DAMAGE = { pistol: 25, rifle: 30, shotgun: 14 };          // per bullet / per pellet
+  var DAMAGE = { pistol: 25, rifle: 30, shotgun: 14, smg: 20, revolver: 60, sniper: 150 };   // per bullet / per pellet
   var LIMB_MULT = { head: 4, torso: 1, armL: 0.6, armR: 0.6, legL: 0.7, legR: 0.7 };
   var NPC_POPS = ['OOF', 'BONK', 'TIMBER!', 'YEET', 'SPLINTERS'];
 
@@ -1523,6 +1664,269 @@
   // When ragdolling, pull hands/feet out of the model first, then work inwards.
   var DETACH_ORDER = ['forearmL', 'forearmR', 'shinL', 'shinR', 'head', 'upperArmL', 'upperArmR', 'thighL', 'thighR', 'torso'];
 
+  // ---- CLOTHES ----
+  // The clothes ARE the body parts: each part is rebuilt with colours painted onto its
+  // corners ("vertex colours"): shirt colour on the chest, a belt on the waist, jeans on the
+  // hips and legs, shoes on the feet. Painting colours on is free, so a whole outfit costs
+  // ZERO extra draw calls. Only hats are an extra piece (and only some people wear them).
+  var clothTex = canvasTexture(64, 64, function (ctx, w, h) {
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h);
+    for (var i = 0; i < 500; i++) {                 // fabric fuzz
+      var g = 225 + Math.floor(Math.random() * 30);
+      ctx.fillStyle = 'rgb(' + g + ',' + g + ',' + g + ')';
+      ctx.fillRect(Math.random() * w, Math.random() * h, 1, 1);
+    }
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)'; ctx.lineWidth = 2;   // a few soft creases
+    for (var j = 0; j < 5; j++) { var x = Math.random() * w; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + rand(-8, 8), h); ctx.stroke(); }
+  }).tex;
+  var CLOTH_MAT = new THREE.MeshLambertMaterial({ map: clothTex, vertexColors: true });
+  var CL_BOX = new THREE.BoxBufferGeometry(1, 1, 1);
+  var HEMI = new THREE.SphereBufferGeometry(1, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2);   // top half of a ball
+  var SKINS = [0xc98d55, 0xdcb07a, 0x9a6033];      // same tones as the 3 woods
+  function shade(hex, k) {
+    var r = Math.min(255, ((hex >> 16) & 255) * k), g = Math.min(255, ((hex >> 8) & 255) * k), b = Math.min(255, (hex & 255) * k);
+    return (r << 16) | (g << 8) | b;
+  }
+  function chestR(y) { return 0.135 + (y + 0.08) / 0.36 * 0.065; }   // how wide the chest is at height y
+  var CHEST_TILT = 0.108;                          // the chest leans back a bit, so front stuff tilts too
+  function onChest(list, y, w, h, c, dz) {         // stick a flat bit (pocket, tie, stripe) on the front
+    list.push({ geo: CL_BOX, p: [0, y, chestR(y) * 0.6 + (dz || 0.004)], s: [w, h, 0.012], r: [CHEST_TILT, 0, 0], c: c });
+  }
+  function ringAt(list, y, h, c, grow) {           // a band all the way round the chest
+    var r = chestR(y) + (grow || 0.006);
+    list.push({ geo: taper(r, r, h), p: [0, y, 0], s: [1, 1, 0.6], c: c });
+  }
+
+  // every part's shapes, painted for one outfit
+  function clothShapes(geo, o) {
+    var L = [], top = o.top, trim = shade(top, 0.72), skin = o.skin, pants = o.pants;
+    if (geo === 'torso') {
+      L.push({ geo: taper(0.2, 0.135, 0.36), p: [0, 0.1, 0], s: [1, 1, 0.6], c: top });
+      L.push({ geo: BALL, p: [0, -0.1, 0], s: [0.095, 0.075, 0.075], c: o.untucked ? top : o.belt });
+      L.push({ geo: taper(0.13, 0.165, 0.18), p: [0, -0.2, 0], s: [1, 1, 0.68], c: pants });
+      if (o.untucked) ringAt(L, -0.07, 0.05, top, 0.008);
+      if (o.style === 'singlet') {                // armholes: wood shoulders poking out
+        L.push({ geo: BALL, p: [0.17, 0.24, 0], s: [0.05, 0.05, 0.06], c: skin });
+        L.push({ geo: BALL, p: [-0.17, 0.24, 0], s: [0.05, 0.05, 0.06], c: skin });
+      } else L.push({ geo: taper(0.075, 0.085, 0.03), p: [0, 0.285, 0], s: [1, 1, 0.75], c: o.style === 'suit' ? 0xf4f4f0 : trim });   // collar
+      if (o.style === 'stripes') { ringAt(L, -0.02, 0.035, o.stripe); ringAt(L, 0.07, 0.035, o.stripe); ringAt(L, 0.16, 0.035, o.stripe); }
+      if (o.style === 'hoodie') {
+        L.push({ geo: BALL, p: [0, 0.27, -0.085], s: [0.12, 0.065, 0.07], c: trim });            // the hood, down
+        onChest(L, -0.025, 0.17, 0.07, trim);                                                    // front pocket
+        onChest(L, 0.19, 0.008, 0.09, 0xeeeeee, 0.008);                                          // drawstrings
+        L[L.length - 1].p[0] = 0.03; onChest(L, 0.19, 0.008, 0.09, 0xeeeeee, 0.008); L[L.length - 1].p[0] = -0.03;
+      }
+      if (o.style === 'jacket' || o.style === 'suit') {
+        onChest(L, 0.1, o.style === 'suit' ? 0.06 : 0.08, 0.34, o.under);                        // shirt showing down the front
+        if (o.style === 'suit') { onChest(L, 0.09, 0.028, 0.26, o.tie, 0.009); onChest(L, 0.23, 0.04, 0.03, o.tie, 0.01); }
+      }
+      if (o.style === 'hivis') { ringAt(L, 0.02, 0.025, 0xdfe4e8); ringAt(L, 0.15, 0.025, 0xdfe4e8); }
+      if (o.apron) {
+        onChest(L, 0.04, 0.18, 0.2, o.apron, 0.007);                                             // bib
+        L.push({ geo: CL_BOX, p: [0, -0.19, 0.112], s: [0.27, 0.22, 0.012], r: [-0.13, 0, 0], c: o.apron });
+      }
+      if (o.tag) { onChest(L, 0.17, 0.05, 0.022, 0xffffff, 0.01); L[L.length - 1].p[0] = 0.075; }    // name badge
+    } else if (o.style !== 'singlet' && geo === 'upperArm') {
+      L.push({ geo: BALL, p: [0, 0.14, 0], s: [0.062, 0.062, 0.062], c: top });
+      if (o.long) L.push({ geo: taper(0.05, 0.042, 0.27), p: [0, 0, 0], c: top });
+      else {
+        L.push({ geo: taper(0.055, 0.05, 0.13), p: [0, 0.075, 0], c: top });                    // short sleeve
+        L.push({ geo: taper(0.048, 0.04, 0.27), p: [0, 0, 0], c: skin });
+      }
+    } else if (o.long && geo === 'forearm') {
+      L.push({ geo: BALL, p: [0, 0.17, 0], s: [0.045, 0.045, 0.045], c: top });
+      L.push({ geo: taper(0.043, 0.036, 0.24), p: [0, 0.04, 0], c: top });
+      L.push({ geo: taper(0.039, 0.039, 0.03), p: [0, -0.075, 0], c: trim });                  // cuff
+      L.push({ geo: BALL, p: [0, -0.14, 0.005], s: [0.03, 0.075, 0.05], c: skin });
+    } else if (geo === 'thigh') {
+      L.push({ geo: BALL, p: [0, 0.2, 0], s: [0.07, 0.07, 0.07], c: pants });
+      if (o.shorts) {
+        L.push({ geo: taper(0.075, 0.064, 0.22), p: [0, 0.08, 0], c: pants });
+        L.push({ geo: taper(0.068, 0.05, 0.4), p: [0, -0.01, 0], c: skin });
+      } else L.push({ geo: taper(0.071, 0.054, 0.4), p: [0, -0.01, 0], c: pants });
+    } else if (geo === 'shin') {
+      var leg = o.shorts ? skin : pants;
+      L.push({ geo: BALL, p: [0, 0.22, 0], s: [0.054, 0.054, 0.054], c: leg });
+      L.push({ geo: taper(0.052, 0.041, 0.36), p: [0, 0.02, 0], c: leg });
+      if (o.shorts && !o.boots) L.push({ geo: taper(0.043, 0.041, 0.06), p: [0, -0.13, 0], c: 0xf2f2f2 });   // socks
+      if (o.boots) L.push({ geo: taper(0.05, 0.052, 0.1), p: [0, -0.15, 0], c: o.shoe });
+      L.push({ geo: BALL, p: [0, -0.2, 0.045], s: [0.056, 0.04, 0.12], c: o.shoe });             // shoe
+      L.push({ geo: CL_BOX, p: [0, -0.232, 0.045], s: [0.1, 0.014, 0.225], c: o.sole });          // sole
+    } else return null;                           // this part stays bare wood
+    return L;
+  }
+  var clothCache = {};
+  function clothGeo(geo, o) {
+    var key = geo + JSON.stringify(o);
+    if (clothCache[key] === undefined) { var L = clothShapes(geo, o); clothCache[key] = L ? mergeShapes(L) : null; }
+    return clothCache[key];
+  }
+  function hatShapes(o) {
+    var c = o.hatCol, L = [];
+    if (o.hat === 'cap') {
+      L.push({ geo: HEMI, p: [0, 0.1, 0.005], s: [0.112, 0.09, 0.124], c: c });
+      L.push({ geo: CL_BOX, p: [0, 0.103, 0.135], s: [0.15, 0.012, 0.1], r: [-0.12, 0, 0], c: shade(c, 0.8) });
+      L.push({ geo: BALL, p: [0, 0.188, 0.005], s: [0.016, 0.01, 0.016], c: shade(c, 0.8) });
+    } else if (o.hat === 'beanie') {
+      L.push({ geo: HEMI, p: [0, 0.1, 0.005], s: [0.111, 0.095, 0.122], c: c });
+      L.push({ geo: taper(0.113, 0.113, 0.035), p: [0, 0.105, 0.005], s: [1, 1, 1.09], c: shade(c, 0.8) });
+      L.push({ geo: BALL, p: [0, 0.2, 0.005], s: [0.032, 0.032, 0.032], c: o.pom || 0xffffff });
+    } else if (o.hat === 'hardhat') {
+      L.push({ geo: HEMI, p: [0, 0.105, 0.005], s: [0.12, 0.1, 0.13], c: c });
+      L.push({ geo: taper(0.14, 0.14, 0.012), p: [0, 0.105, 0.015], s: [1, 1, 1.05], c: c });
+      L.push({ geo: CL_BOX, p: [0, 0.16, 0.005], s: [0.02, 0.1, 0.26], c: shade(c, 0.85) });
+    } else if (o.hat === 'bandana') {                                     // gang colours
+      L.push({ geo: HEMI, p: [0, 0.095, 0.005], s: [0.113, 0.1, 0.124], c: c });
+      L.push({ geo: BALL, p: [0, 0.11, -0.128], s: [0.03, 0.03, 0.025], c: c });
+      L.push({ geo: CL_BOX, p: [0.02, 0.06, -0.14], s: [0.03, 0.08, 0.008], r: [0, 0, 0.3], c: c });
+      L.push({ geo: CL_BOX, p: [-0.02, 0.06, -0.14], s: [0.03, 0.08, 0.008], r: [0, 0, -0.3], c: c });
+    }
+    return L;
+  }
+  function hatGeo(o) {
+    var key = o.hat + o.hatCol + (o.pom || '');
+    if (!clothCache[key]) clothCache[key] = mergeShapes(hatShapes(o));
+    return clothCache[key];
+  }
+
+  // put an outfit on someone (works again later, e.g. to give a shop worker their uniform)
+  function dressNpc(npc, o) {
+    var wood = npc.parts.head.mesh.material;
+    o.skin = SKINS[Math.max(0, WOODS.indexOf(wood))];
+    PART_NAMES.forEach(function (name) {
+      var m = npc.parts[name].mesh, g = clothGeo(NPC_PARTS[name].geo, o);
+      if (g) { m.geometry = g; m.material = CLOTH_MAT; }
+      else { m.geometry = NPC_GEO[NPC_PARTS[name].geo]; m.material = wood; }
+    });
+    if (npc.hat) { npc.hat.parent.remove(npc.hat); npc.hat = null; }
+    if (o.hat) {
+      npc.hat = new THREE.Mesh(hatGeo(o), CLOTH_MAT);
+      npc.parts.head.mesh.add(npc.hat);
+    }
+    npc.outfit = o;
+  }
+
+  var TOPS = [0x3b6fd6, 0xd64545, 0x2e9e5b, 0xf0efe8, 0x2b2b30, 0xf2c230, 0x8e44ad, 0xff8a3d, 0x4fc3c9, 0xe57fa8, 0x7a7a80, 0x1f4e79];
+  var PANTS = [0x2f4f86, 0x23395d, 0x2a2a2e, 0xc2a878, 0x6b6f75, 0x4a5b3a, 0x3c6aa8];
+  var SHOES = [0xf4f4f4, 0x1e1e22, 0x7a4a2a, 0xc93030, 0x3a3a40];
+  var HAT_COLS = [0xd64545, 0x1f4e79, 0x2b2b30, 0x2e9e5b, 0xf2c230, 0xe8e8e8, 0xff8a3d];
+  function randomOutfit() {
+    var style = pick(['tee', 'tee', 'tee', 'stripes', 'hoodie', 'hoodie', 'jacket', 'jacket', 'suit', 'hivis', 'singlet']);
+    var shoe = pick(SHOES);
+    var o = {
+      style: style, top: pick(TOPS), pants: pick(PANTS), belt: pick([0x2a1d14, 0x1a1a1a, 0x5a3a20]),
+      shoe: shoe, sole: shoe === 0xf4f4f4 || Math.random() < 0.4 ? 0xf8f8f8 : shade(shoe, 0.6),
+      long: false, shorts: Math.random() < 0.25, untucked: Math.random() < 0.5, boots: false
+    };
+    if (style === 'stripes') { o.stripe = pick(TOPS.filter(function (c) { return c !== o.top; })); }
+    if (style === 'hoodie') { o.long = true; o.untucked = true; o.shorts = Math.random() < 0.15; }
+    if (style === 'jacket') { o.long = true; o.untucked = false; o.top = pick([0x2b2b30, 0x5a3a24, 0x3a4a5e, 0x6b2b2b, 0x4a5b3a]); o.under = pick([0xf0efe8, 0x8e8e94, 0xd64545, 0x3b6fd6]); }
+    if (style === 'suit') { o.long = true; o.untucked = false; o.shorts = false; o.top = pick([0x26262c, 0x23395d, 0x4a4a52]); o.pants = o.top; o.under = 0xf6f6f2; o.tie = pick([0xb3262b, 0x1f4e79, 0x2e9e5b, 0x8e44ad]); o.shoe = 0x1e1e22; o.sole = 0x141414; }
+    if (style === 'hivis') { o.top = pick([0xff7a1a, 0xd8f02a]); o.untucked = true; o.shorts = Math.random() < 0.6; o.boots = true; o.shoe = pick([0x5a3a20, 0x1e1e22]); o.sole = 0x141414; o.pants = pick([0x23395d, 0x2a2a2e, 0x4a5b3a]); if (Math.random() < 0.5) { o.hat = 'hardhat'; o.hatCol = pick([0xffffff, 0xf2c230]); } }
+    if (style === 'singlet') { o.top = pick([0x1a1a1a, 0x1a1a1a, 0xf0efe8, 0x3b6fd6]); o.shorts = Math.random() < 0.6; o.untucked = true; }
+    if (!o.hat && Math.random() < 0.3) { o.hat = pick(['cap', 'cap', 'beanie']); o.hatCol = pick(HAT_COLS); if (o.hat === 'beanie') o.pom = pick([0xffffff, 0xf2c230, 0xd64545]); }
+    return o;
+  }
+  var OUTFITS = {
+    burger: function () { return { style: 'tee', top: 0xd23a2a, pants: 0x2a2a2e, belt: 0x1a1a1a, shoe: 0x1e1e22, sole: 0x141414, long: false, shorts: false, untucked: false, apron: 0xf4f4f0, tag: true, hat: 'cap', hatCol: 0xf2c230 }; },
+    dairy: function () { return { style: 'jacket', top: 0x7a4f2e, under: 0xece2c6, pants: 0xb49a6a, belt: 0x3a2614, shoe: 0x5a3a20, sole: 0x2a1d14, long: true, shorts: false, untucked: false, tag: true }; },
+    gang: function () {
+      return Math.random() < 0.5
+        ? { style: 'hoodie', top: pick([0x1d1d22, 0x2b2b30, 0x3a3a44]), pants: 0x23395d, belt: 0x1a1a1a, shoe: 0x1e1e22, sole: 0xf8f8f8, long: true, shorts: false, untucked: true, hat: 'bandana', hatCol: 0xc62828 }
+        : { style: 'jacket', top: 0x161618, under: 0xc62828, pants: 0x2a2a2e, belt: 0x1a1a1a, shoe: 0x1e1e22, sole: 0x141414, long: true, shorts: false, untucked: false, boots: true, hat: 'bandana', hatCol: 0xc62828 };
+    }
+  };
+
+  // ---- DRAWN-ON FACES ----
+  // One picture with 8 faces on it (a "texture atlas"). Each mannequin's face is a curved
+  // patch hugging the front of its egg head; to change expression we just point the
+  // patch at a different face on the picture (by changing its UVs). 1 picture, 0 extra textures.
+  //   0 calm  1 scared  2 angry  3 happy  4 X-eyes (down)  5 frozen  6 asleep (KO)  7 hurt
+  var FACE = { calm: 0, scared: 1, angry: 2, happy: 3, down: 4, frozen: 5, sleep: 6, hurt: 7 };
+  var faceAtlas = canvasTexture(512, 256, function (ctx) {
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    for (var f = 0; f < 8; f++) {
+      var ox = (f % 4) * 128, oy = Math.floor(f / 4) * 128;
+      ctx.save(); ctx.translate(ox, oy);
+      ctx.strokeStyle = '#2a1a10'; ctx.fillStyle = '#2a1a10'; ctx.lineWidth = 6;
+      var eye = function (x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); };
+      var line = function (pts) { ctx.beginPath(); ctx.moveTo(pts[0], pts[1]); for (var i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]); ctx.stroke(); };
+      var arc = function (x, y, r, a0, a1) { ctx.beginPath(); ctx.arc(x, y, r, a0, a1); ctx.stroke(); };
+      if (f === 0) { eye(44, 56, 7); eye(84, 56, 7); arc(64, 74, 16, 0.25 * Math.PI, 0.75 * Math.PI); }                          // calm: dots + little smile
+      if (f === 1) {                                                                                                         // scared
+        ctx.lineWidth = 5; arc(44, 56, 11, 0, Math.PI * 2); arc(84, 56, 11, 0, Math.PI * 2); eye(44, 56, 4); eye(84, 56, 4);
+        line([32, 36, 52, 32]); line([76, 32, 96, 36]); ctx.lineWidth = 6; arc(64, 92, 9, 0, Math.PI * 2);
+      }
+      if (f === 2) {                                                                                                         // angry
+        ctx.lineWidth = 7; line([30, 38, 54, 50]); line([98, 38, 74, 50]); eye(46, 60, 6); eye(82, 60, 6);
+        arc(64, 104, 18, 1.2 * Math.PI, 1.8 * Math.PI);
+      }
+      if (f === 3) { arc(44, 60, 9, 1.1 * Math.PI, 1.9 * Math.PI); arc(84, 60, 9, 1.1 * Math.PI, 1.9 * Math.PI);               // happy: ^ ^ eyes + grin
+        ctx.beginPath(); ctx.arc(64, 72, 20, 0.1 * Math.PI, 0.9 * Math.PI); ctx.closePath(); ctx.fill(); }
+      if (f === 4) { line([36, 48, 52, 64]); line([52, 48, 36, 64]); line([76, 48, 92, 64]); line([92, 48, 76, 64]);            // X X
+        line([48, 92, 58, 86, 68, 92, 80, 86]); }
+      if (f === 5) {                                                                                                         // frozen: wide eyes, wobbly mouth
+        ctx.lineWidth = 5; arc(44, 56, 12, 0, Math.PI * 2); arc(84, 56, 12, 0, Math.PI * 2); eye(44, 58, 3); eye(84, 58, 3);
+        ctx.lineWidth = 6; line([44, 92, 52, 86, 60, 92, 68, 86, 76, 92, 84, 86]);
+      }
+      if (f === 6) { arc(44, 54, 9, 0.1 * Math.PI, 0.9 * Math.PI); arc(84, 54, 9, 0.1 * Math.PI, 0.9 * Math.PI);                // asleep
+        arc(64, 90, 6, 0, Math.PI * 2); ctx.font = 'bold 22px sans-serif'; ctx.fillText('z', 98, 32); ctx.font = 'bold 16px sans-serif'; ctx.fillText('z', 110, 18); }
+      if (f === 7) { ctx.lineWidth = 6; line([34, 52, 52, 58]); line([94, 52, 76, 58]); line([34, 62, 52, 58]); line([94, 62, 76, 58]);   // hurt: > < and gritted teeth
+        ctx.lineWidth = 4; ctx.strokeRect(46, 82, 36, 14); line([58, 82, 58, 96]); line([70, 82, 70, 96]); }
+      ctx.restore();
+    }
+  }).tex;
+  var faceMat = new THREE.MeshLambertMaterial({ map: faceAtlas, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  // the front of the egg head, as a curved patch (same shape as the head, 1.5% bigger)
+  var faceBase = new THREE.SphereBufferGeometry(1, 10, 8, Math.PI / 2 - 0.8, 1.6, Math.PI / 2 - 0.75, 1.35);
+  faceBase.scale(0.115 * 1.015, 0.15 * 1.015, 0.125 * 1.015);
+  faceBase.translate(0, 0.03, 0.005);
+  var faceUV0 = faceBase.attributes.uv.array.slice();
+  function makeFace(npc) {
+    var g = faceBase.clone();
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(faceUV0.slice(), 2));
+    var m = new THREE.Mesh(g, faceMat);
+    m.renderOrder = 2;
+    npc.parts.head.mesh.add(m);
+    npc.face = m; npc.faceNow = -1;
+    setFace(npc, FACE.calm);
+  }
+  function setFace(npc, f) {
+    if (!npc.face || npc.faceNow === f) return;
+    npc.faceNow = f;
+    var uv = npc.face.geometry.attributes.uv, cx = (f % 4) * 0.25, cy = 0.5 - Math.floor(f / 4) * 0.5;
+    for (var i = 0; i < uv.count; i++) uv.setXY(i, cx + (1 - faceUV0[i * 2]) * 0.25, cy + faceUV0[i * 2 + 1] * 0.5);
+    uv.needsUpdate = true;
+  }
+  // pick the right face for what they're doing (checked 5 times a second)
+  var faceT = 0;
+  function updateFaces(dt) {
+    faceT -= dt;
+    if (faceT > 0) return;
+    faceT = 0.2;
+    npcs.forEach(function (n) {
+      if (n.faceLock) return;
+      var f = FACE.calm;
+      if (n.ragdoll) f = gameTime < n.koUntil ? FACE.sleep : (n.dead || n.downed ? FACE.down : FACE.scared);
+      else if (n.hostage) f = FACE.scared;
+      else if (n.led) f = n.buddy ? FACE.happy : FACE.scared;
+      else if (n.mood === 'fight') f = FACE.angry;
+      else if (n.mood === 'refuse') f = FACE.angry;
+      else if (n.mood === 'freeze') f = FACE.frozen;
+      else if (n.mood === 'crouch' || n.panicT > 0) f = FACE.scared;
+      else if (n.flinchT > 0 || n.crawling || n.wounds.legL || n.wounds.legR || n.wounds.armL || n.wounds.armR) f = FACE.hurt;
+      else if (n.buddy) f = FACE.happy;
+      else if (n.gunT > 0.3) f = FACE.scared;
+      setFace(n, f);
+    });
+  }
+
+  var BLOB_GEO = new THREE.PlaneBufferGeometry(0.75, 0.75);
+  var BLOB_MAT = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, map: canvasTexture(64, 64, function (ctx) {
+    var g = ctx.createRadialGradient(32, 32, 2, 32, 32, 31);
+    g.addColorStop(0, 'rgba(0,0,0,0.42)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 64, 64);
+  }).tex });
   function buildNpcModel() {
     var root = new THREE.Group();
     root.rotation.order = 'YXZ';      // turn (Y) first, then tilt (X: getting up, Z: limping)
@@ -1608,6 +2012,11 @@
     // Something smacked into them? Fast enough = KNOCKED OUT (see bumped())
     npc.body.addEventListener('collide', function (e) { bumped(npc, e.body); });
     if (!npc.sitting) npcBodyOn(npc, true);   // sitting = no box, or it would shove the chair away
+    var shadow = new THREE.Mesh(BLOB_GEO, BLOB_MAT);  // a soft dark circle under their feet: grounds them
+    shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.035; shadow.renderOrder = 1;
+    npc.root.add(shadow); npc.shadow = shadow;
+    dressNpc(npc, randomOutfit());
+    makeFace(npc);
     scene.add(npc.root);
     PART_NAMES.forEach(function (n) {
       var m = npc.parts[n].mesh;
@@ -1646,6 +2055,7 @@
   }
   var crawlE = new THREE.Euler(0, 0, 0, 'YXZ'), crawlQ = new THREE.Quaternion();
   function placeNpc(npc) {
+    if (npc.shadow) npc.shadow.position.y = 0.035 - npc.root.position.y;
     npc.root.position.set(npc.x, 0, npc.z);
     npc.root.rotation.y = npc.heading;
     if (npc.crawling) {   // lying down: the invisible box lies flat, ahead of the feet
@@ -1671,6 +2081,7 @@
   }
   function fleeFrom(npc, px, pz) {
     if (npc.sitting) standUp(npc);
+    if (npc.panicT <= 0 && Math.random() < 0.6) say(npc, pick(LINES.run), 'scared');
     var dx = npc.x - px, dz = npc.z - pz, d = Math.sqrt(dx * dx + dz * dz) || 1, b = npc.bounds;
     npc.panicT = rand(2.5, 4);
     npc.idleT = 0;
@@ -1819,13 +2230,10 @@
   // ---- ALIVE: brain + animation ----
   function updateAliveNpc(npc, dt) {
     var p = npc.parts, w = npc.wounds;
-    if (npc.riseT > 0) {               // getting back up: tilt from lying flat to standing
-      npc.riseT -= dt;
-      var k = clamp(1 - npc.riseT / 0.6, 0, 1);
-      npc.vel.set(0, 0, 0);
-      placeNpc(npc);
-      npc.root.rotation.x = -Math.PI / 2 * (1 - k * k * (3 - 2 * k));   // smoothstep
-      npc.root.rotation.z = 0;
+    updateTouchFx(npc, dt);
+    if (npc.led && updateLed(npc, dt)) return;
+    if (npc.riseT > 0) {               // getting back up (see startRise)
+      if (npc.rise) updateRise(npc, dt); else npc.riseT = 0;
       return;
     }
     if (npc.crawling) { updateCrawl(npc, dt); return; }
@@ -1997,7 +2405,7 @@
     fly.velocity.set(fly.velocity.x + dir.x * 2.5, fly.velocity.y + 1.5, fly.velocity.z + dir.z * 2.5);
     fly.angularVelocity.set(rand(-8, 8), rand(-8, 8), rand(-8, 8));
     npc.parts[name].mesh.getWorldPosition(tmpV);
-    for (var i = 0; i < 3; i++) sparks(tmpV, 0xc4935a);
+    if (state.blood) bloodSever(npc, name); else for (var i = 0; i < 3; i++) sparks(tmpV, 0xc4935a);
     popText(name === 'head' ? 'HEAD OFF' : pick(CUT_POPS), tmpV);
     state.stats.chops++; scoreDirty = true;
     var limb = limbOf(name);
@@ -2011,6 +2419,7 @@
   function bumped(npc, other) {
     if (npc.ragdoll || npc.removed || npc.koQueued) return;
     var thr = 99, p = other.propRef;
+    if (p && p.homing) return;
     if (p) {
       if (p.type === 'mag') return;
       var small = p.kind === 'rock' || p.kind === 'grenade' || p.type === 'grenade' || p.type === 'food';
@@ -2036,6 +2445,7 @@
     state.stats.kos++; scoreDirty = true;
     sfx.bonk();
     popText('KNOCKED OUT', h.position);
+    later(1.2, function () { say(npc, pick(['zzz...', 'mummy...', 'five more minutes...', '*snore*'])); });
     removeStars(npc);
     npc.stars = new THREE.Group();                 // cartoon stars spinning round their head
     for (var i = 0; i < 3; i++) {
@@ -2057,10 +2467,17 @@
   }
   var TORSO_PARENTS = { head: 1, upperArmL: 1, upperArmR: 1 };
   function getUp(npc) {
+    later(0.8, function () { if (!npc.removed && !npc.ragdoll) say(npc, pick(npc.crawling ? LINES.crawl : LINES.getUp)); });
     var t = npc.parts.torso.body.position;
     var spot = collide(t.x, t.z, 0.3);
     npc.bounds = boundsAt(spot.x, spot.z);   // landed in the dairy? that's home now
     npc.x = clamp(spot.x, npc.bounds.x1, npc.bounds.x2); npc.z = clamp(spot.z, npc.bounds.z1, npc.bounds.z2);
+    var rag = {}, torsoQ = npc.parts.torso.body.quaternion, torsoP = npc.parts.torso.body.position;
+    var restQ = new CANNON.Quaternion(torsoQ.x, torsoQ.y, torsoQ.z, torsoQ.w), restP = torsoP.clone();
+    PART_NAMES.forEach(function (n) {        // remember exactly how they were lying
+      var b = npc.parts[n].body; if (!b || npc.parts[n].cut) return;
+      rag[n] = { p: new THREE.Vector3(b.position.x, b.position.y, b.position.z), q: new THREE.Quaternion(b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w) };
+    });
     clearRagdoll(npc);
     removeStars(npc);
     // put every part back in its socket, torso first so the arms have something to attach to
@@ -2088,12 +2505,116 @@
       npc.crawling = true;                 // no legs to stand on: crawl instead
       npc.riseT = 0; npc.root.rotation.x = 1.25;
     } else {
-      npc.riseT = 0.6; npc.root.rotation.x = -Math.PI / 2;
+      npc.body.velocity.set(0, 0, 0);
+      npcBodyOn(npc, true);
+      startRise(npc, rag, { quaternion: restQ, position: restP });
+      return;
     }
     npc.body.velocity.set(0, 0, 0);
     npcBodyOn(npc, true);
     placeNpc(npc);
   }
+  // ---- GETTING BACK UP (a proper animation, not a plank on a hinge) ----
+  // Keyframes: how high the hips are, how far the hips have shuffled forward/back (hipZ),
+  // how tilted the body is (pitch: -1.57 = on their back, +1.57 = on their belly), and the
+  // angle of each joint. We slide smoothly between them. For the first 0.3 s we also blend
+  // FROM wherever the ragdoll actually landed, so there's no snap.
+  //   at    pitch  hipY  hipZ  lean  thigh  shin  arm   elbow head
+  var RISE_BACK = [   // lying on their back: sit up, knees in, rock forward, stand
+    [0.00, -1.50, 0.12, 0.00, 0.00,  0.00, 0.00,  0.10, -0.1,  0.0],
+    [0.40, -0.35, 0.12, 0.00, 0.10, -1.20, 0.15,  0.70, -0.15, 0.35],   // sit up, hands behind on the floor
+    [0.78, -0.05, 0.16, 0.00, 0.25, -2.20, 2.35, -0.60, -0.9,  0.2],    // knees pulled in
+    [1.18,  0.50, 0.45, 0.15, 0.10, -1.85, 2.10, -1.10, -0.4, -0.2],    // rock forward onto the feet
+    [1.62,  0.00, 0.90, 0.25, 0.00,  0.00, 0.00,  0.05, -0.1,  0.0]     // stand
+  ];
+  var RISE_FRONT = [  // lying on their belly: push up, onto hands and knees, onto feet, stand
+    [0.00,  1.50, 0.13,  0.00, 0.00, 0.00, 0.00,  0.10, -0.1, -0.3],
+    [0.38,  0.95, 0.35,  0.00, 0.00, 0.22, 0.00, -0.85, -0.3, -0.45],  // push-up
+    [0.80,  1.20, 0.47, -0.15, 0.00, -1.20, 1.57, -1.20, -0.1, -0.5],  // hands and knees
+    [1.22,  0.55, 0.45, -0.30, 0.10, -1.90, 2.10, -1.00, -0.4, -0.2],  // up onto the feet
+    [1.66,  0.00, 0.90, -0.19, 0.00, 0.00, 0.00,  0.05, -0.1,  0.0]
+  ];
+  var riseQ = new THREE.Quaternion(), riseE = new THREE.Euler(), riseM = new THREE.Matrix4(), riseInv = new THREE.Matrix4();
+  var riseV = new THREE.Vector3(), riseS = new THREE.Vector3(), riseQ2 = new THREE.Quaternion();
+  function startRise(npc, rag, t) {               // t = where the torso was lying (position + quaternion)
+    var up = new THREE.Vector3(0, 1, 0).applyQuaternion(t.quaternion);
+    var fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(t.quaternion);
+    var onBack = fwd.y > 0;                         // face pointing at the sky = lying on their back
+    // face the way the body is lying, so the first frame matches the ragdoll
+    npc.heading = onBack ? Math.atan2(-up.x, -up.z) : Math.atan2(up.x, up.z);
+    if (Math.abs(up.y) > 0.8) npc.heading = rand(-Math.PI, Math.PI);   // landed weird (on their head?)
+    var hip = new THREE.Vector3(t.position.x, 0, t.position.z).addScaledVector(up, -0.29);
+    var spot = collide(hip.x, hip.z, 0.3);
+    npc.x = clamp(spot.x, npc.bounds.x1, npc.bounds.x2); npc.z = clamp(spot.z, npc.bounds.z1, npc.bounds.z2);
+    var slow = (npc.wounds.legL || npc.wounds.legR || npc.wounds.armL || npc.wounds.armR) ? 0.7 : rand(0.9, 1.15);
+    npc.rise = { seq: onBack ? RISE_BACK : RISE_FRONT, t: 0, speed: slow, rag: rag, blend: 0.3 };
+    npc.riseT = npc.rise.seq[npc.rise.seq.length - 1][0] / slow + 0.05;
+    if (npc.shadow) npc.shadow.visible = false;
+    updateRise(npc, 0);
+  }
+  function updateRise(npc, dt) {
+    var r = npc.rise, p = npc.parts, seq = r.seq;
+    r.t += dt * r.speed; npc.riseT -= dt;
+    var i = 0;
+    while (i < seq.length - 2 && r.t > seq[i + 1][0]) i++;
+    var A = seq[i], B = seq[i + 1], k = clamp((r.t - A[0]) / (B[0] - A[0]), 0, 1);
+    k = k * k * (3 - 2 * k);                                  // ease in + out
+    var L = function (f) { return A[f] + (B[f] - A[f]) * k; };
+    var th = L(1), hipY = L(2), hipZ = L(3), h = npc.heading;
+    // once their feet are under them, work out the hip height from the leg angles,
+    // so the feet stay ON the floor instead of floating while the legs straighten
+    var a1 = th + L(5), plant = 0.42 * Math.cos(a1) + 0.46 * Math.cos(a1 + L(6)) + 0.02;
+    if (i >= 2) hipY = plant; else if (i === 1) hipY += (plant - hipY) * k;
+    PART_NAMES.forEach(function (n) {                         // start from the normal pose
+      var pt = p[n]; if (pt.cut) return;
+      pt.mesh.position.copy(pt.home); pt.mesh.quaternion.set(0, 0, 0, 1);
+      if (pt.pivot) pt.pivot.quaternion.set(0, 0, 0, 1);
+    });
+    npc.vel.set(0, 0, 0);
+    placeNpc(npc);
+    // hips stay planted at (x,z)+hipZ while the body tilts around them
+    var a = 0.9 * Math.cos(th), b = 0.9 * Math.sin(th);
+    var ax = npc.x + hipZ * Math.sin(h), az = npc.z + hipZ * Math.cos(h);
+    npc.root.position.set(ax - b * Math.sin(h), hipY - a, az - b * Math.cos(h));
+    npc.root.rotation.set(th, h, 0);
+    p.torso.mesh.rotation.x = L(4);
+    var asym = Math.sin(r.t * 3) * 0.12;                      // one leg leads a bit
+    p.thighL.pivot.rotation.set(L(5) + asym, 0, 0.04); p.thighR.pivot.rotation.set(L(5) - asym, 0, -0.04);
+    p.shinL.pivot.rotation.set(L(6), 0, 0); p.shinR.pivot.rotation.set(L(6), 0, 0);
+    p.upperArmL.pivot.rotation.set(L(7), 0, 0.12); p.upperArmR.pivot.rotation.set(L(7), 0, -0.12);
+    p.forearmL.pivot.rotation.set(L(8), 0, 0); p.forearmR.pivot.rotation.set(L(8), 0, 0);
+    p.head.pivot.rotation.set(L(9), 0, 0);
+    // first moment: melt from the ragdoll pose into the animation (no teleporting limbs)
+    if (r.rag && r.t < r.blend) {
+      var kb = r.t / r.blend; kb = kb * kb * (3 - 2 * kb);
+      npc.root.updateMatrixWorld(true);
+      var want = {};
+      PART_NAMES.forEach(function (n) {
+        if (p[n].cut || !r.rag[n]) return;
+        var m = p[n].mesh; want[n] = { p: m.getWorldPosition(new THREE.Vector3()), q: m.getWorldQuaternion(new THREE.Quaternion()) };
+      });
+      PART_NAMES.forEach(function (n) {                       // parents first, so children can use their new spot
+        var w = want[n]; if (!w) return;
+        var m = p[n].mesh, rg = r.rag[n];
+        riseV.copy(rg.p).lerp(w.p, kb);
+        riseQ.copy(rg.q).slerp(w.q, kb);
+        m.parent.updateMatrixWorld(true);
+        riseInv.copy(m.parent.matrixWorld).invert();
+        riseM.compose(riseV, riseQ, riseS.set(1, 1, 1)).premultiply(riseInv);
+        riseM.decompose(m.position, m.quaternion, riseS);
+        m.updateMatrixWorld(true);
+      });
+    }
+    if (r.t >= seq[seq.length - 1][0] || npc.riseT <= 0) {    // done: standing where the hips ended up
+      npc.x = ax; npc.z = az; npc.riseT = 0; npc.rise = null;
+      npc.root.rotation.set(0, h, 0); npc.root.position.y = 0;
+      p.torso.mesh.rotation.x = 0;
+      if (npc.shadow) npc.shadow.visible = true;
+      placeNpc(npc);
+    }
+  }
+
+
   function updateRagdoll(npc, dt) {
     var moving = false;
     PART_NAMES.forEach(function (n) {
@@ -2152,9 +2673,14 @@
     knife:   { dmg: 18, range: 1.0,  rate: 0.7 },
     axe:     { dmg: 35, range: 1.15, rate: 1.3 },
     sword:   { dmg: 28, range: 1.3,  rate: 1.0 },
+    pan:     { dmg: 18, range: 1.2,  rate: 1.0 },
+    lid:     { dmg: 8,  range: 0.95, rate: 0.8 },
     pistol:  { dmg: 8,  range: 7,    rate: 0.7,  spread: 0.06 },
     rifle:   { dmg: 6,  range: 8,    rate: 0.16, spread: 0.08, burst: 5 },
     shotgun: { dmg: 10, range: 5,    rate: 1.2,  spread: 0.05, pellets: 5 },  // 5 pellets x 10 = 50: two blasts and you're done
+    smg:     { dmg: 4,  range: 7,    rate: 0.09, spread: 0.1, burst: 8 },
+    revolver: { dmg: 22, range: 7,   rate: 1.0,  spread: 0.04 },
+    sniper:  { dmg: 45, range: 16,   rate: 2.6,  spread: 0.012 },
     rpg:     { dmg: 0,  range: 10,   rate: 4 }
   };
   var foeV = new THREE.Vector3(), mV = new THREE.Vector3(), dV = new THREE.Vector3();
@@ -2173,7 +2699,7 @@
     if (npc.gang && by === 'player') { gangAttack(); if (npc.mood !== 'fight') startFight(npc, 'player'); return; }
     if (npc.crawling) { fleeFrom(npc, fx, fz); return; }
     if (npc.buddy) {
-      if (hit && by === 'player') { npc.buddy = false; startFight(npc, 'player'); popText('TRAITOR!', headPos(npc)); }
+      if (hit && by === 'player') { npc.buddy = false; startFight(npc, 'player'); say(npc, pick(['TRAITOR!', 'I TRUSTED YOU!', 'SERIOUSLY?!']), 'angry'); }
       else if (by !== 'player' && by && !by.buddy) startFight(npc, by);       // someone attacked your buddy
       return;
     }
@@ -2185,14 +2711,14 @@
     if (t === 'run' || (hit && (npc.mood === 'crouch' || npc.mood === 'freeze'))) {
       npc.mood = 'calm'; fleeFrom(npc, fx, fz); return;
     }
-    if (npc.mood !== t) popText(t === 'freeze' ? "DON'T SHOOT!" : pick(['AAAH!', 'NOPE', 'HIDE!']), headPos(npc));
+    if (npc.mood !== t) say(npc, t === 'freeze' ? pick(LINES.freeze) : pick(LINES.crouch), 'scared');
     npc.mood = t; npc.moodT = rand(3.5, 6); npc.threat = { x: fx, z: fz };
     npc.target = null; npc.panicT = 0;
   }
   function headPos(npc) { return new THREE.Vector3(npc.x, 2.0, npc.z); }
   function startFight(npc, foe) {
     if (!foe) return;
-    if (npc.mood !== 'fight') popText(npc.weapon ? pick(['LOCKED IN', 'YOU ASKED FOR IT']) : pick(['FIGHT ME!', 'COME HERE', 'OI!']), headPos(npc));
+    if (npc.mood !== 'fight') say(npc, npc.gang ? pick(LINES.gangFight) : (npc.weapon ? pick(LINES.armedFight) : pick(LINES.fistFight)), 'angry');
     npc.mood = 'fight'; npc.foe = foe; npc.moodT = 25;
     npc.panicT = 0; npc.target = null; npc.idleT = 0;
     npc.bounds = WORLD_ZONE;
@@ -2212,7 +2738,9 @@
       return false;
     }
     npc.speed = 0; npc.vel.set(0, 0, 0);
-    if (npc.threat) npc.heading += clamp(angleDiff(npc.heading, Math.atan2(npc.threat.x - npc.x, npc.threat.z - npc.z)), -3 * dt, 3 * dt);
+    var turnBy = npc.threat ? clamp(angleDiff(npc.heading, Math.atan2(npc.threat.x - npc.x, npc.threat.z - npc.z)), -3 * dt, 3 * dt) : 0;
+    npc.heading += turnBy;
+    npc.shuffle = (npc.shuffle || 0) * Math.exp(-dt * 6) + Math.abs(turnBy) * 8;      // turning = little steps
     placeNpc(npc);
     var shake = Math.sin(gameTime * 38 + npc.phase) * 0.012;     // trembling
     if (npc.mood === 'refuse') {                       // arms crossed, shaking their head: "NOPE"
@@ -2236,6 +2764,8 @@
     } else {
       npc.root.position.y = 0;
       ['thighL', 'thighR', 'shinL', 'shinR'].forEach(function (n) { p[n].pivot.rotation.set(0, 0, 0); });
+      var shuf = Math.min(0.35, npc.shuffle || 0) * Math.sin(gameTime * 14);
+      p.thighL.pivot.rotation.x = shuf; p.thighR.pivot.rotation.x = -shuf;
       p.torso.mesh.rotation.x = -0.08 + shake;
       p.head.pivot.rotation.set(0, Math.sin(gameTime * 9) * 0.15, 0);      // shaking their head
       poseArm(npc, 'L', npc.wounds.armL ? 'dangle' : 'up', 0, dt);
@@ -2272,6 +2802,10 @@
       return { want: fd > 4 ? npc.walkSpeed * 1.8 : (fd > 2.2 ? npc.walkSpeed : 0), arms: holdArms(npc) };
     }
     foePos(npc.foe, foeV);
+    if (gameTime > (npc.tauntAt || 0)) {             // trash talk every few seconds
+      npc.tauntAt = gameTime + rand(4, 8);
+      say(npc, pick(npc.buddy ? LINES.buddyFight : (npc.gang ? LINES.gangTaunt : (npc.weapon ? LINES.armedTaunt : LINES.fistTaunt))), npc.buddy ? 'happy' : 'angry');
+    }
     var dx = foeV.x - npc.x, dz = foeV.z - npc.z, dist = Math.sqrt(dx * dx + dz * dz);
     npc.heading += clamp(angleDiff(npc.heading, Math.atan2(dx, dz)), -6 * dt, 6 * dt);
     npc.idleT = 0.5; npc.target = null;
@@ -2328,7 +2862,13 @@
         foePos(npc.foe, mV);
         var d = Math.sqrt((mV.x - npc.x) * (mV.x - npc.x) + (mV.z - npc.z) * (mV.z - npc.z));
         if (d > spec.range + 0.35) { sfx.swish(); return; }    // you stepped back: whiff!
-        if (kind) sfx.chop(); else sfx.thud();
+        if (npc.foe === 'player' && lidBlocksFrom(npc.x, npc.z)) {     // you blocked it with the bin lid!
+          sfx.clang(); guns.lid.blade[0].getWorldPosition(mV); sparks(mV, 0xffe28a); popText('BLOCKED', mV);
+          npc.flinchT = 0.4;
+          return;
+        }
+        if (kind && WEAPONS[kind].blunt && npc.foe === 'player') sfx.bong();
+        else if (kind) sfx.chop(); else sfx.thud();
         var shield = npc.foe === 'player' ? shieldBlocks(npc) : null;
         if (shield) { var sm = shield.parts.torso.mesh; sm.getWorldPosition(mV); hitNpc(shield, sm, { point: mV.clone(), object: sm }, new THREE.Vector3(shield.x - npc.x, 0.2, shield.z - npc.z).normalize(), { impulse: 3, dmg: spec.dmg, melee: true, by: npc }); }
         else if (npc.foe === 'player') hurtPlayer(spec.dmg, npc);
@@ -2337,7 +2877,8 @@
           if (npc.foe.parts[part].cut) part = 'torso';
           var m = npc.foe.parts[part].mesh; m.getWorldPosition(mV);
           dV.set(npc.foe.x - npc.x, 0.2, npc.foe.z - npc.z).normalize();
-          if (kind && kind !== 'knife' && part !== 'torso' && Math.random() < 0.35) { sever(npc.foe, part, dV); ragdollNpc(npc.foe); }
+          if (kind && WEAPONS[kind].blunt) bonkNpc(npc.foe, m, { point: mV.clone(), object: m }, dV.clone(), part === 'head' ? 5 : 3.5, kind === 'pan' ? { dmg: 18, impulse: 9, npcPan: true } : { dmg: 8, impulse: 10 }, npc);
+          else if (kind && kind !== 'knife' && part !== 'torso' && Math.random() < 0.35) { sever(npc.foe, part, dV); ragdollNpc(npc.foe); }
           else hitNpc(npc.foe, m, { point: mV.clone(), object: m }, dV.clone(), { impulse: 4, dmg: spec.dmg, melee: true, by: npc });
         }
       });
@@ -2376,6 +2917,7 @@
     var h = hits[0];
     // the player isn't a physics object: if nothing's in the way before you, and the
     // bullet passes close enough to your head/chest, it hits you
+    if (npc.foe === 'player' && (!h || h.distance > foeDist - 0.2) && lidStopsBullet(from, dir, foeDist)) return;
     if (npc.foe === 'player' && (!h || h.distance > foeDist - 0.2)) {
       camera.getWorldPosition(mV);
       var along = mV.clone().sub(from).dot(dir);
@@ -2412,7 +2954,7 @@
     npc.bounds = WORLD_ZONE;
     if (hostile) return;                                 // pulled from under the counter: NOT your buddy
     npc.buddy = true;
-    popText(pick(['THANKS!', "I'VE GOT YOUR BACK", 'BUDDY!']), headPos(npc));
+    say(npc, pick(LINES.buddyGet), 'happy');
   }
   function dropNpcWeapon(npc) {
     if (!npc.weapon) return;
@@ -2461,6 +3003,39 @@
     ctx.fillText('HP ' + hp, 64, 18);
     hpBar.tex.needsUpdate = true;
   }
+  // ---- the bin lid as a shield ----
+  // The lid is a disc: a bullet is stopped if its path crosses that disc before reaching you.
+  var lidC = new THREE.Vector3(), lidN = new THREE.Vector3(), lidP = new THREE.Vector3();
+  function lidDisc() {
+    if (state.weapon !== 'lid' || state.dead) return false;
+    var pts = guns.lid.blade;
+    pts[0].getWorldPosition(lidC);                       // centre of the front face
+    pts[3].getWorldPosition(lidP);                       // top of the rim
+    guns.lid.blade[1].getWorldPosition(lidN);            // right edge
+    lidN.sub(lidC).cross(lidP.sub(lidC)).normalize().negate();   // the way the lid faces (outwards)
+    return true;
+  }
+  function lidStopsBullet(from, dir, far) {
+    if (!lidDisc()) return false;
+    var dn = dir.dot(lidN);
+    if (Math.abs(dn) < 1e-4) return false;
+    var t = lidP.subVectors(lidC, from).dot(lidN) / dn;
+    if (t < 0 || t > far + 0.3) return false;
+    lidP.copy(from).addScaledVector(dir, t);
+    if (lidP.distanceTo(lidC) > 0.3) return false;       // went round the edge
+    addTracer(from, lidP);
+    sparks(lidP, 0xffe28a); sfx.clang();
+    if (Math.random() < 0.5) popText('PING', lidP);
+    kickAmount = Math.min(0.15, kickAmount + 0.05);      // you feel it hit
+    return true;
+  }
+  function lidBlocksFrom(x, z) {                          // a punch/chop from (x,z): is the lid between you?
+    if (!lidDisc()) return false;
+    camera.getWorldPosition(lidP);
+    var dx = x - lidP.x, dz = z - lidP.z, d = Math.sqrt(dx * dx + dz * dz) || 1;
+    var nx = lidN.x, nz = lidN.z, nl = Math.sqrt(nx * nx + nz * nz) || 1;
+    return (dx * nx + dz * nz) / (d * nl) > 0.45;         // lid roughly facing them
+  }
   function hurtPlayer(dmg, by) {
     if (state.dead || !state.started) return;
     state.hp -= dmg;
@@ -2471,6 +3046,7 @@
     drawHp();
   }
   function die() {
+    npcs.forEach(function (n) { if (n.foe === 'player' && !n.ragdoll) say(n, pick(LINES.youDied), 'angry', true); });
     state.hp = 0; state.dead = true; state.deadT = 2.5;
     state.stats.deaths++; scoreDirty = true;
     cutAllWebs();
@@ -2518,10 +3094,11 @@
     npc.nerve = Math.random();
     npc.rob = 'none'; npc.robbedAt = -999; npc.aimT = 0; npc.fear = 0;
     npc.trait = pick(['freeze', 'freeze', 'fight', 'crouch']);
+    dressNpc(npc, info.shop === 'DAIRY' ? OUTFITS.dairy() : OUTFITS.burger());   // work uniform
     clerks.push(npc);
     return npc;
   }
-  function sayAt(npc, words) { popText(words, headPos(npc)); }
+  function sayAt(npc, words) { say(npc, words, npc.mood === 'fight' || npc.rob === 'fight' ? 'angry' : (npc.mood === 'freeze' || npc.mood === 'crouch' ? 'scared' : null)); }
   function startRobbery(npc) {
     if (gameTime - npc.robbedAt < 90) {               // you already cleaned them out
       sayAt(npc, pick(["TILL'S EMPTY!", "YOU ALREADY TOOK IT ALL!", 'NOTHING LEFT!']));
@@ -2715,6 +3292,190 @@
   }
 
   // =========================================================================
+  // 7h. TALKING: speech bubbles + what everyone says
+  // No AI here: every line is written below, picked by WHAT'S HAPPENING and WHO they
+  // are (personality, job, gang, buddy). Point a gun at someone and they react: tough
+  // guys warn you then fight, runners leg it, crouchers duck, freezers put their hands up.
+  // =========================================================================
+  var LINES = {
+    led: ['OW OW OW', 'WHERE ARE WE GOING?!', 'LET GO OF MY ARM!', 'okay okay OKAY', 'you\'re hurting me!', 'I\'m coming, I\'m coming!'],
+    ledBuddy: ['lead the way!', 'right behind ya', 'where we off to?', 'holding hands, cute'],
+    held: ['PUT ME DOWN!', 'LET GO!', 'HELP!', 'NOOO', 'this is so embarrassing', 'I WILL BITE YOU'],
+    upsideDown: ['I\'M UPSIDE DOWN!', 'ALL THE BLOOD\'S GOING TO MY HEAD', 'put me DOWN!', 'wheee... NO. NOT WHEE.'],
+    poke: ['hey!', 'oi!', 'personal space, mate', 'don\'t touch me', 'what?', 'can I help you?', 'rude.'],
+    pokeBuddy: ['haha, up top!', 'boop', 'yeah yeah, I\'m here', 'what\'s the plan?'],
+    slapped: ['DID YOU JUST SLAP ME?!', 'OW!', 'HOW DARE YOU', 'my FACE!', 'that STUNG'],
+    bump: ['oi, watch it!', 'excuse you', 'sorry- wait, YOU bumped ME', 'mind out!', 'easy!'],
+    aim: {
+      fight:  ['YOU WANNA GO?', 'POINT THAT SOMEWHERE ELSE', "I'M NOT SCARED OF YOU", 'DO IT. I DARE YOU.', 'BIG MAN WITH A GUN, EH?'],
+      run:    ['NOPE NOPE NOPE', "I'M OUTTA HERE", 'NOT TODAY!', 'MUUUM!'],
+      crouch: ["PLEASE DON'T!", "I'VE GOT A FAMILY!", "I'LL BE QUIET!", 'NOT THE FACE!'],
+      freeze: ['OKAY... EASY...', "I'M NOT MOVING", 'WHAT DO YOU WANT?', 'JUST... CALM DOWN']
+    },
+    aimBuddy:    ['WRONG WAY, MATE!', "OI! I'M ON YOUR SIDE!", 'AIM AT THEM, NOT ME', 'BRO. REALLY?'],
+    aimGang:     ["YOU'RE DEAD, BRO", 'BIG MISTAKE', 'COME ON THEN', 'YOU KNOW WHO WE ARE?'],
+    aimFighting: ['YEAH? DO IT!', 'MISSED ME!', "YOU CAN'T AIM"],
+    lastWarning: ['LAST CHANCE...', 'PUT. IT. DOWN.', "I'M COUNTING TO THREE"],
+    run:         ['RUN!!', 'AAAAH!', "HE'S GOT A GUN!", 'NOT LIKE THIS!', "I'M TOO YOUNG!"],
+    crouch:      ['AAAH!', 'HIDE!', 'NOT ME!', "DON'T HURT ME!"],
+    freeze:      ["DON'T SHOOT!", 'OKAY OKAY!', 'HANDS UP, SEE?'],
+    hitArm:      ['MY ARM!', 'OW OW OW', 'THAT WAS MY GOOD ARM!'],
+    hitLeg:      ['MY LEG!', "I CAN'T FEEL MY LEG", 'OW! WHY THE LEG?!'],
+    hitBody:     ['OOF!', 'WHY?!', 'THAT HURT!', 'OW!', 'RUDE!'],
+    getUp:       ['what happened...', 'my head...', 'not cool, man', 'okay. ow.', 'I need a lie down'],
+    crawl:       ['my legs...', "I'll just... crawl", 'this is fine'],
+    fistFight:   ['FIGHT ME!', 'COME HERE!', 'OI!', 'PUT YOUR DUKES UP'],
+    armedFight:  ['LOCKED IN', 'YOU ASKED FOR IT', "NOW WE'RE TALKING"],
+    gangFight:   ['GET HIM!', "HE'S ON OUR TURF!", 'SURROUND HIM!'],
+    fistTaunt:   ['IS THAT ALL YOU GOT?', 'COME ON!', 'I DO BOXING, YOU KNOW', 'STAND STILL!'],
+    armedTaunt:  ["YOU'RE GOING DOWN", 'NOWHERE TO HIDE', 'RELOADING... JUST KIDDING'],
+    gangTaunt:   ['FLANK HIM!', "HE'S OVER THERE!", 'THIS IS OUR STREET', 'GET HIM, BOYS!'],
+    buddyGet:    ['THANKS!', "I'VE GOT YOUR BACK", "LET'S GOOO", 'BUDDY!'],
+    buddyFight:  ['GOT YOUR BACK!', 'BEHIND YOU!', 'TARGET SPOTTED', 'COVER ME!', 'EAT THIS!'],
+    buddyIdle:   ['WHERE TO, BOSS?', "I'M HUNGRY", "THIS GUN'S HEAVY", 'NICE DAY FOR IT', 'YOU GOOD?'],
+    youDied:     ['TOO EASY', 'AND STAY DOWN', 'GG', "SHOULD'VE STAYED HOME"],
+    chat: {
+      range:  ['NICE SHOOTING', 'HAVE YOU SEEN MY TARGET?', "I'M JUST HERE FOR THE VIBES", "DON'T SHOOT ME, I'M BUSY", 'IS IT LUNCH YET?'],
+      room:   ['THIS IS MY ROOM', 'KNOCK NEXT TIME', "I'M WAITING FOR SOMEONE"],
+      burger: ['WANT FRIES WITH THAT?', "THE GRILL'S STILL HOT", "COMBO'S ON SPECIAL", 'NO SHOES, NO SERVICE'],
+      dairy:  ['GOT YOUR MILK?', 'PIES ARE FRESH TODAY', 'NO LOITERING', "ICE CREAM'S $3"],
+      house:  ["SHH, MY SHOW'S ON", 'WHO LET YOU IN?', 'WIPE YOUR FEET'],
+      gang:   ['WHAT YOU LOOKING AT?', 'KEEP WALKING', 'NICE SHOES. SHAME.'],
+      street: ['LOVELY DAY', 'HAVE YOU SEEN MY CAT?', 'WATCH THE ROAD', 'PRICES THESE DAYS...', "MY UTE'S WORTH MORE THAN YOU"]
+    }
+  };
+  function zoneName(npc) {
+    var b = npc.bounds;
+    for (var k in ZONES) if (ZONES[k] === b) return k === 'dairyStaff' ? 'dairy' : (k === 'burgerStaff' ? 'burger' : k);
+    return 'street';
+  }
+
+  // ---- speech bubbles: a sprite above their head, drawn on a canvas ----
+  // Each line's picture is made once and cached, so saying it again is free.
+  var bubbleCache = {}, bubbleCount = 0, bubbles = [];
+  var BUBBLE_STYLE = { angry: ['#fff1f0', '#d32f2f', '#8b0000'], scared: ['#eef6ff', '#2f6fb3', '#123a66'], happy: ['#effff3', '#2fae5b', '#0f4d24'] };
+  function bubbleTexture(text, style) {
+    var key = style + '|' + text;
+    if (bubbleCache[key]) return bubbleCache[key];
+    var col = BUBBLE_STYLE[style] || ['#ffffff', '#3a4048', '#1b1b1b'];
+    var c = canvasTexture(512, 128, function (ctx, w, h) {
+      ctx.font = 'bold 46px sans-serif';
+      var tw = Math.min(ctx.measureText(text).width, 470);
+      var bw = tw + 36, x = (w - bw) / 2;
+      ctx.fillStyle = col[0]; ctx.strokeStyle = col[1]; ctx.lineWidth = 5;
+      roundRect(ctx, x, 6, bw, 80, 22); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(w / 2 - 14, 84); ctx.lineTo(w / 2, 112); ctx.lineTo(w / 2 + 14, 84); ctx.closePath();   // the little tail
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = col[0]; ctx.fillRect(w / 2 - 12, 80, 24, 6);
+      ctx.fillStyle = col[2]; ctx.textAlign = 'center';
+      ctx.fillText(text, w / 2, 62, 470);
+    });
+    c.tex.minFilter = THREE.LinearFilter;
+    if (++bubbleCount > 80) { bubbleCache = {}; bubbleCount = 0; }   // don't hoard textures forever
+    bubbleCache[key] = c.tex;
+    return c.tex;
+  }
+  // force = say it even if they spoke a moment ago (getting shot beats small talk)
+  function say(npc, text, style, force) {
+    if (!npc || npc.removed || !text) return;
+    if (!force && gameTime - (npc.saidAt || -9) < 1.2) return;
+    npc.saidAt = gameTime;
+    var b = npc.bubble;
+    if (!b) {
+      b = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false }));
+      b.renderOrder = 900;
+      scene.add(b);
+      npc.bubble = b;
+      bubbles.push(npc);
+    }
+    b.material.map = bubbleTexture(text, style || 'normal');
+    b.material.needsUpdate = true;
+    b.scale.set(1.6, 0.4, 1);
+    b.userData.life = clamp(1.6 + text.length * 0.07, 2, 4);
+    b.visible = true;
+    // only 4 bubbles at once, or the screen turns into a comic book
+    var showing = bubbles.filter(function (n) { return n.bubble && n.bubble.visible; });
+    if (showing.length > 4) {
+      showing.sort(function (a, c) { return a.bubble.userData.life - c.bubble.userData.life; });
+      showing[0].bubble.visible = false;
+    }
+  }
+  var bubV = new THREE.Vector3();
+  function updateBubbles(dt) {
+    for (var i = bubbles.length - 1; i >= 0; i--) {
+      var n = bubbles[i], b = n.bubble;
+      if (n.removed) { scene.remove(b); b.material.dispose(); n.bubble = null; bubbles.splice(i, 1); continue; }
+      if (!b.visible) continue;
+      b.userData.life -= dt;
+      if (b.userData.life <= 0) { b.visible = false; continue; }
+      n.parts.head.mesh.getWorldPosition(bubV);
+      b.position.set(bubV.x, bubV.y + 0.42, bubV.z);
+      b.material.opacity = Math.min(1, b.userData.life / 0.35);
+      b.material.visible = n.ragdoll ? n.parts.head.mesh.visible : n.root.visible;   // behind a wall = no bubble
+    }
+  }
+
+  // ---- reacting to a gun pointed at them (shopkeepers get robbed instead, see 7e) ----
+  var talkT = 0, chatAt = 4;
+  function updateTalk(dt) {
+    talkT -= dt;
+    if (talkT > 0) return;
+    talkT = 0.1;
+    if (!state.started || state.dead) return;
+    var target = null;
+    if (isGun(state.weapon)) {
+      getAim(aim);
+      npcs.forEach(function (n) {
+        if (target || n.clerk || n.hostage || n.ragdoll || n.dead || n.removed) return;
+        if (gunPointsAt(n)) target = n;
+      });
+    }
+    camera.getWorldPosition(tmpV);
+    npcs.forEach(function (n) {
+      if (n.clerk) return;
+      if (n !== target) { n.gunT = Math.max(0, (n.gunT || 0) - 0.05); if (!n.gunT) n.gunSaid = 0; return; }
+      n.gunT = (n.gunT || 0) + 0.1;
+      if (n.mood === 'fight' && !n.buddy) { if (!n.gunSaid) { n.gunSaid = 1; say(n, pick(LINES.aimFighting), 'angry'); } return; }
+      if (n.buddy) { if (!n.gunSaid && n.gunT > 0.4) { n.gunSaid = 1; say(n, pick(LINES.aimBuddy), 'happy'); } return; }
+      if (n.gang) {
+        if (!n.gunSaid && n.gunT > 0.3) { n.gunSaid = 1; say(n, pick(LINES.aimGang), 'angry'); }
+        if (n.gunT > 1.0) gangAttack();
+        return;
+      }
+      if (n.mood !== 'calm' && n.mood !== 'freeze' && n.mood !== 'crouch') return;
+      if (!n.gunSaid && n.gunT > 0.3) {                   // they've noticed: turn, and say something
+        n.gunSaid = 1;
+        if (n.sitting) standUp(n);
+        n.heading = Math.atan2(tmpV.x - n.x, tmpV.z - n.z);
+        n.target = null; n.idleT = 1.5;
+        say(n, pick(LINES.aim[n.trait] || LINES.aim.freeze), n.trait === 'fight' ? 'angry' : 'scared');
+      }
+      if (n.trait === 'fight') {                         // tough guys: warn you, then come at you
+        if (n.gunSaid === 1 && n.gunT > 1.4) { n.gunSaid = 2; say(n, pick(LINES.lastWarning), 'angry', true); }
+        if (n.gunT > 2.6) { n.gunT = 0; react(n, tmpV.x, tmpV.z, false, 'player'); }
+      } else if (n.gunT > 1.0) {
+        if (n.mood === 'calm') react(n, tmpV.x, tmpV.z, false, 'player');
+        else n.moodT = Math.max(n.moodT, 2);             // keep aiming = they keep cowering
+      }
+    });
+    // ---- small talk when you walk past someone ----
+    if (gameTime > chatAt) {
+      chatAt = gameTime + rand(5, 9);
+      var near = npcs.filter(function (n) {
+        if (n.ragdoll || n.dead || n.hostage || n.mood !== 'calm' || n === target || !n.root.visible) return false;
+        var dx = n.x - tmpV.x, dz = n.z - tmpV.z;
+        return dx * dx + dz * dz < 25;
+      });
+      if (near.length) {
+        var n = pick(near);
+        if (n.buddy) say(n, pick(LINES.buddyIdle), 'happy');
+        else if (n.crawling) say(n, pick(LINES.crawl));
+        else say(n, pick(LINES.chat[n.gang ? 'gang' : zoneName(n)] || LINES.chat.street));
+      }
+    }
+  }
+
+  // =========================================================================
   // 7f. HUMAN SHIELD
   // Empty hand + walk right up to someone (1.8 m) + trigger = grab them.
   // They're held in front of you, and you pull out a pistol with your other hand.
@@ -2753,12 +3514,22 @@
     npc.x = tmpV.x + tmpV2.x * 0.5 + tmpV2.z * 0.1;
     npc.z = tmpV.z + tmpV2.z * 0.5 - tmpV2.x * 0.1;
     npc.heading = Math.atan2(tmpV2.x, tmpV2.z);    // facing the same way you are
+    // how fast are they being pushed along? walk their legs that fast (no gliding!)
+    var moved = npc.lastHX === undefined ? 0 : Math.sqrt((npc.x - npc.lastHX) * (npc.x - npc.lastHX) + (npc.z - npc.lastHZ) * (npc.z - npc.lastHZ));
+    npc.lastHX = npc.x; npc.lastHZ = npc.z;
+    var spd = dt > 0 ? Math.min(moved / dt, 3) : 0;
+    npc.hostSpd = (npc.hostSpd || 0) + (spd - (npc.hostSpd || 0)) * Math.min(1, dt * 8);
     npc.vel.set(0, 0, 0); npc.speed = 0;
     placeNpc(npc);
     var p = npc.parts, wig = Math.sin(gameTime * 7 + npc.phase);
-    npc.root.position.y = 0; npc.root.rotation.z = wig * 0.03;      // struggling
+    var stepAmt = Math.min(1, npc.hostSpd / 1.2);
+    npc.walkPhase = (npc.walkPhase || 0) + dt * (2 + npc.hostSpd * 5);
+    var sw = Math.sin(npc.walkPhase) * 0.6 * stepAmt;
+    npc.root.position.y = Math.abs(Math.cos(npc.walkPhase)) * 0.03 * stepAmt;      // a little bob each step
+    npc.root.rotation.z = wig * 0.03;      // struggling
     ['thighL', 'thighR', 'shinL', 'shinR'].forEach(function (n) { p[n].pivot.rotation.set(0, 0, 0); });
-    p.thighL.pivot.rotation.x = wig * 0.15; p.thighR.pivot.rotation.x = -wig * 0.15;
+    p.thighL.pivot.rotation.x = sw + wig * 0.12 * (1 - stepAmt); p.thighR.pivot.rotation.x = -sw - wig * 0.12 * (1 - stepAmt);
+    p.shinL.pivot.rotation.x = Math.max(0, -sw) * 1.2; p.shinR.pivot.rotation.x = Math.max(0, sw) * 1.2;
     p.torso.mesh.rotation.x = -0.12;
     p.head.pivot.rotation.set(-0.1, wig * 0.3, 0);
     poseArm(npc, 'L', npc.wounds.armL ? 'dangle' : 'up', 0, dt);
@@ -2787,12 +3558,7 @@
     n.gang = true; n.trait = 'fight';
     giveWeapon(n, kind, true);
     n.bounds = ZONES.gang;
-    var hs = NPC_PARTS.head.size;                  // a red bandana so you know who's who
-    var band = boxMesh(hs[0] + 0.025, 0.06, hs[2] + 0.025, 0xc62828);
-    band.position.y = 0.06;
-    n.parts.head.mesh.add(band);
-    var knot = boxMesh(0.05, 0.05, 0.08, 0xc62828); knot.position.set(0, 0.04, -hs[2] / 2 - 0.04);
-    n.parts.head.mesh.add(knot);
+    dressNpc(n, OUTFITS.gang());                  // dark clothes + a red bandana so you know who's who
     return n;
   }
   function gangAttack() {
@@ -2829,8 +3595,11 @@
   function hitNpc(npc, mesh, hit, dir, w) {
     var name = mesh.userData.npcPart, limb = limbOf(name);
     if (!w.by) state.stats.hits++;
-    if (!w.melee) addDecal(hit);       // bullet hole (blades don't leave those)
-    sparks(hit.point, 0xc4935a);       // wood chips, not blood - they're mannequins
+    if (w.blunt) { /* bonks: no holes, no blood, just the noise */ }
+    else if (!bloodHit(hit, dir, w, limb)) {    // BLOOD switched off: wooden mannequin mode
+      if (!w.melee) addDecal(hit);       // bullet hole (blades don't leave those)
+      sparks(hit.point, 0xc4935a);       // wood chips
+    }
     if (!w.melee) sfx.knock();
     npc.lastHit = gameTime;
     if (npc.ragdoll) {                 // already floppy: just shove the piece you hit
@@ -2849,9 +3618,8 @@
       if (npc.wounds.legL && npc.wounds.legR && !npc.crawling) {
         collapse = true;                   // both legs gone: they fall... then crawl (see getUp)
         popText('CRAWLING', hit.point);
-      } else if (fresh) popText('LEG HIT', hit.point);
+      }                                   // (they tell you about their leg in a speech bubble now)
     } else if (!down && (limb === 'armL' || limb === 'armR')) {
-      if (!npc.wounds[limb]) popText('ARM HIT', hit.point);
       npc.wounds[limb] = true;
     }
     if (collapse) {
@@ -2872,6 +3640,8 @@
     var by = w.by || 'player';
     if (by === 'player') camera.getWorldPosition(tmpV); else tmpV.set(by.x, 0, by.z);
     npc.lastLimb = limb;
+    if (!npc.hostage && !(npc.clerk && (npc.rob === 'refuse' || npc.rob === 'comply')))
+      say(npc, pick(limb === 'armL' || limb === 'armR' ? LINES.hitArm : (limb === 'legL' || limb === 'legR' ? LINES.hitLeg : LINES.hitBody)), npc.mood === 'fight' ? 'angry' : 'scared', true);
     react(npc, tmpV.x, tmpV.z, true, by);
   }
   // Something loud happened near them (by = 'player' or the mannequin who did it)
@@ -2896,6 +3666,7 @@
       var dx = npc.x - c.x, dz = npc.z - c.z, dist = Math.sqrt(dx * dx + dz * dz);
       if (dist > R) { fleeFrom(npc, c.x, c.z); return; }
       var k = 1 - dist / R, len = dist || 1;
+      if (k > 0.25) { npc.parts.torso.mesh.getWorldPosition(tmpV); bleed(tmpV, null, Math.round(6 + 10 * k), 2.5, 0.5, 0.2); }
       npc.hp -= 120 * k;
       if (npc.hp <= 0) npc.downed = true;
       ragdollNpc(npc);
@@ -2922,8 +3693,15 @@
       if (d > PLAYER_RADIUS + 0.3 || d < 1e-4 || gameTime - (npc.kickT || 0) < 0.4 || npc.hostage) return;
       // someone fighting you can walk right up to you; only YOU walking into them knocks them down
       if ((npc.mood === 'fight' || npc.buddy) && gameTime - (state.walkedAt || -9) > 0.1) return;
+      if (npc.led) return;
       npc.kickT = gameTime;
       var wasAlive = !npc.ragdoll;
+      if (wasAlive && playerSpeed < 3.3) {                 // just walking: bump them aside, don't flatten them
+        npc.shove = { x: dx / d * 1.6, z: dz / d * 1.6, t: 0.3 };
+        npc.flinchT = 0.2;
+        if (gameTime - (npc.bumpSaidT || -9) > 4 && !npc.clerk) { npc.bumpSaidT = gameTime; say(npc, pick(npc.buddy ? ['careful!', 'oops, sorry'] : LINES.bump)); }
+        return;
+      }
       ragdollNpc(npc);
       npc.lastHit = gameTime;
       var b = npc.parts.torso.body;
@@ -2972,6 +3750,11 @@
       var sightF = boxMesh(0.006, 0.008, 0.006, 0xff6a00); sightF.position.set(0, 0.016, -0.085); parts.rack.add(sightF);
       var grip = boxMesh(0.028, 0.11, 0.046, poly); grip.position.set(0, -0.055, 0.005); grip.rotation.x = 0.22; g.add(grip);
       var guard = boxMesh(0.006, 0.006, 0.05, poly); guard.position.set(0, -0.03, -0.045); g.add(guard);
+      for (var ps = 0; ps < 4; ps++) { var ser = boxMesh(0.033, 0.024, 0.003, 0x0d0e10); ser.position.set(0, 0.0, 0.07 - ps * 0.008); parts.rack.add(ser); }   // slide serrations
+      var sightR = boxMesh(0.016, 0.008, 0.006, 0x111316); sightR.position.set(0, 0.016, 0.08); parts.rack.add(sightR);
+      var port = boxMesh(0.002, 0.012, 0.03, 0x0d0e10); port.position.set(0.017, 0.004, -0.0); parts.rack.add(port);
+      var prail = boxMesh(0.02, 0.008, 0.04, poly); prail.position.set(0, -0.016, -0.12); g.add(prail);
+      var trig = boxMesh(0.004, 0.018, 0.006, 0x0d0e10); trig.position.set(0, -0.02, -0.03); g.add(trig);
       magWell.position.set(0, -0.055, 0.005); magWell.rotation.x = 0.22;
       parts.mag = boxMesh(0.022, 0.105, 0.036, 0x111316); parts.mag.position.y = -0.01; magWell.add(parts.mag);
       parts.muzzle = new THREE.Object3D(); parts.muzzle.position.set(0, 0.027, -0.165); g.add(parts.muzzle);
@@ -2987,6 +3770,11 @@
       var optic = boxMesh(0.03, 0.035, 0.05, 0x111316); optic.position.set(0, 0.075, -0.08); g.add(optic);
       var dot = boxMesh(0.006, 0.006, 0.002, 0xff2020); dot.position.set(0, 0.075, -0.054); g.add(dot);
       var stock = boxMesh(0.04, 0.07, 0.2, poly); stock.position.set(0, 0.0, 0.17); g.add(stock);
+      var spad = boxMesh(0.042, 0.075, 0.015, 0x0d0e10); spad.position.set(0, 0.0, 0.275); g.add(spad);
+      for (var hv = 0; hv < 5; hv++) { var slot = boxMesh(0.057, 0.012, 0.02, 0x0d0e10); slot.position.set(0, 0.02, -0.27 - hv * 0.04); g.add(slot); }   // handguard slots
+      var fhood = boxMesh(0.03, 0.03, 0.05, 0x0d0e10); fhood.position.set(0, 0.025, -0.65); g.add(fhood);              // flash hider
+      var chand = boxMesh(0.022, 0.008, 0.02, 0x50575f); chand.position.set(0, 0.05, 0.03); g.add(chand);
+      var fbolt = boxMesh(0.008, 0.012, 0.02, 0x50575f); fbolt.position.set(0.026, 0.018, -0.04); g.add(fbolt);
       var buffer = boxMesh(0.025, 0.025, 0.12, dark); buffer.position.set(0, 0.02, 0.09); g.add(buffer);
       var pgrip = boxMesh(0.03, 0.09, 0.04, poly); pgrip.position.set(0, -0.07, 0.03); pgrip.rotation.x = 0.3; g.add(pgrip);
       magWell.position.set(0, -0.045, -0.12); magWell.rotation.x = -0.18;
@@ -3003,6 +3791,65 @@
       parts.muzzle = new THREE.Object3D(); parts.muzzle.position.set(0, 0.03, -0.11); g.add(parts.muzzle);
       parts.rackDist = 0.012;
       parts.screen = makeScreen(g, 0, 0.08, 0.04, -0.4);
+    } else if (kind === 'smg') {
+      var sRec = boxMesh(0.042, 0.05, 0.2, dark); sRec.position.set(0, 0.015, -0.07); g.add(sRec);
+      var sShroud = boxMesh(0.036, 0.036, 0.12, mid); sShroud.position.set(0, 0.02, -0.23); g.add(sShroud);
+      for (var sv = 0; sv < 4; sv++) { var vent = boxMesh(0.037, 0.006, 0.012, 0x111316); vent.position.set(0, 0.03, -0.19 - sv * 0.025); g.add(vent); }
+      var sBar = new THREE.Mesh(new THREE.CylinderBufferGeometry(0.009, 0.009, 0.08, 8), mat(0x111316)); sBar.rotation.x = Math.PI / 2; sBar.position.set(0, 0.02, -0.32); g.add(sBar);
+      var sGrip = boxMesh(0.03, 0.09, 0.038, poly); sGrip.position.set(0, -0.055, 0.03); sGrip.rotation.x = 0.25; g.add(sGrip);
+      var sFore = boxMesh(0.03, 0.07, 0.03, poly); sFore.position.set(0, -0.035, -0.2); sFore.rotation.x = -0.15; g.add(sFore);
+      var sStock = boxMesh(0.012, 0.05, 0.16, dark); sStock.position.set(0.018, 0.005, 0.1); g.add(sStock);
+      var sStock2 = boxMesh(0.012, 0.05, 0.16, dark); sStock2.position.set(-0.018, 0.005, 0.1); g.add(sStock2);
+      var sPad = boxMesh(0.045, 0.07, 0.015, 0x111316); sPad.position.set(0, -0.005, 0.18); g.add(sPad);
+      var sRail = boxMesh(0.02, 0.01, 0.16, 0x111316); sRail.position.set(0, 0.045, -0.08); g.add(sRail);
+      var sSight = boxMesh(0.024, 0.024, 0.04, 0x111316); sSight.position.set(0, 0.062, -0.06); g.add(sSight);
+      var sDot = boxMesh(0.005, 0.005, 0.002, 0x30ff60); sDot.position.set(0, 0.064, -0.039); g.add(sDot);
+      magWell.position.set(0, -0.03, -0.09); magWell.rotation.x = 0.05;
+      parts.mag = boxMesh(0.024, 0.16, 0.03, 0x111316); parts.mag.position.y = -0.07; magWell.add(parts.mag);
+      parts.rack = boxMesh(0.016, 0.014, 0.025, 0x50575f); parts.rack.position.set(0.024, 0.03, -0.02); g.add(parts.rack);
+      parts.muzzle = new THREE.Object3D(); parts.muzzle.position.set(0, 0.02, -0.37); g.add(parts.muzzle);
+      parts.rackDist = 0.04;
+      parts.screen = makeScreen(g, 0, 0.085, 0.02, -0.4);
+    } else if (kind === 'revolver') {
+      var steelR = 0x9aa1aa;
+      var rFrame = boxMesh(0.03, 0.05, 0.09, steelR); rFrame.position.set(0, 0.01, -0.02); g.add(rFrame);
+      var rBar = new THREE.Mesh(new THREE.CylinderBufferGeometry(0.011, 0.011, 0.2, 10), mat(steelR)); rBar.rotation.x = Math.PI / 2; rBar.position.set(0, 0.025, -0.16); g.add(rBar);
+      var rRib = boxMesh(0.012, 0.012, 0.2, steelR); rRib.position.set(0, 0.038, -0.16); g.add(rRib);
+      var rLug = boxMesh(0.014, 0.014, 0.17, steelR); rLug.position.set(0, 0.008, -0.15); g.add(rLug);
+      var rCyl = new THREE.Mesh(new THREE.CylinderBufferGeometry(0.026, 0.026, 0.045, 6), mat(0x7d848c)); rCyl.rotation.x = Math.PI / 2; rCyl.position.set(0, 0.012, -0.035); g.add(rCyl);
+      parts.cylinder = rCyl;
+      var rGrip = boxMesh(0.028, 0.085, 0.034, 0x5a3a22); rGrip.position.set(0, -0.045, 0.035); rGrip.rotation.x = 0.35; g.add(rGrip);
+      var rHam = boxMesh(0.008, 0.02, 0.015, 0x5a5f66); rHam.position.set(0, 0.035, 0.03); rHam.rotation.x = -0.4; g.add(rHam);
+      var rFs = boxMesh(0.005, 0.012, 0.012, 0xff6a00); rFs.position.set(0, 0.048, -0.25); g.add(rFs);
+      var rGuard = boxMesh(0.006, 0.006, 0.04, steelR); rGuard.position.set(0, -0.025, -0.01); g.add(rGuard);
+      parts.shell = boxMesh(0.012, 0.012, 0.04, 0xd4a640); parts.shell.visible = false; parts.shell.position.set(0.03, 0.012, -0.035); g.add(parts.shell);
+      parts.shell.userData.baseY = 0.012;
+      parts.rack = rHam;
+      parts.muzzle = new THREE.Object3D(); parts.muzzle.position.set(0, 0.025, -0.27); g.add(parts.muzzle);
+      parts.rackDist = 0.012;
+      parts.screen = makeScreen(g, 0, 0.075, 0.03, -0.35);
+    } else if (kind === 'sniper') {
+      var wood = 0x6b4a2b, blk = 0x1b1d20;
+      var nStock = boxMesh(0.045, 0.06, 0.62, wood); nStock.position.set(0, -0.005, -0.16); g.add(nStock);
+      var nButt = boxMesh(0.04, 0.11, 0.2, wood); nButt.position.set(0, -0.03, 0.22); g.add(nButt);
+      var nPad = boxMesh(0.042, 0.12, 0.02, blk); nPad.position.set(0, -0.03, 0.33); g.add(nPad);
+      var nRec = new THREE.Mesh(new THREE.CylinderBufferGeometry(0.018, 0.018, 0.2, 10), mat(blk)); nRec.rotation.x = Math.PI / 2; nRec.position.set(0, 0.03, -0.02); g.add(nRec);
+      var nBar = new THREE.Mesh(new THREE.CylinderBufferGeometry(0.009, 0.012, 0.6, 10), mat(blk)); nBar.rotation.x = Math.PI / 2; nBar.position.set(0, 0.03, -0.42); g.add(nBar);
+      var nBrake = boxMesh(0.03, 0.03, 0.05, blk); nBrake.position.set(0, 0.03, -0.74); g.add(nBrake);
+      var nScope = new THREE.Mesh(new THREE.CylinderBufferGeometry(0.02, 0.02, 0.26, 12), mat(0x22262b)); nScope.rotation.x = Math.PI / 2; nScope.position.set(0, 0.085, -0.05); g.add(nScope);
+      var nObj = new THREE.Mesh(new THREE.CylinderBufferGeometry(0.03, 0.022, 0.06, 12), mat(0x22262b)); nObj.rotation.x = Math.PI / 2; nObj.position.set(0, 0.085, -0.2); g.add(nObj);
+      var nLens = new THREE.Mesh(new THREE.CircleBufferGeometry(0.026, 12), new THREE.MeshBasicMaterial({ color: 0x3a7bd5 })); nLens.position.set(0, 0.085, -0.231); nLens.rotation.y = Math.PI; g.add(nLens);
+      var nEye = new THREE.Mesh(new THREE.CircleBufferGeometry(0.018, 12), new THREE.MeshBasicMaterial({ color: 0xff3030 })); nEye.position.set(0, 0.085, 0.081); g.add(nEye);
+      var nMnt1 = boxMesh(0.02, 0.04, 0.02, blk); nMnt1.position.set(0, 0.055, -0.1); g.add(nMnt1);
+      var nMnt2 = boxMesh(0.02, 0.04, 0.02, blk); nMnt2.position.set(0, 0.055, 0.02); g.add(nMnt2);
+      var nBipod = boxMesh(0.06, 0.012, 0.012, blk); nBipod.position.set(0, -0.03, -0.42); g.add(nBipod);
+      var nGrip = boxMesh(0.03, 0.08, 0.04, wood); nGrip.position.set(0, -0.055, 0.06); nGrip.rotation.x = 0.3; g.add(nGrip);
+      parts.rack = boxMesh(0.012, 0.012, 0.05, 0xb9c0c8); parts.rack.position.set(0.03, 0.035, 0.02); g.add(parts.rack);   // bolt handle
+      parts.shell = boxMesh(0.012, 0.012, 0.06, 0xd4a640); parts.shell.visible = false; parts.shell.position.set(0, 0.05, -0.02); g.add(parts.shell);
+      parts.shell.userData.baseY = 0.035;
+      parts.muzzle = new THREE.Object3D(); parts.muzzle.position.set(0, 0.03, -0.77); g.add(parts.muzzle);
+      parts.rackDist = 0.07;
+      parts.screen = makeScreen(g, 0, 0.13, 0.04, -0.45);
     } else if (kind === 'rpg') {
       var olive = 0x4a5a3a;
       var tube = new THREE.Mesh(new THREE.CylinderBufferGeometry(0.045, 0.045, 1.0, 12), mat(olive));
@@ -3070,6 +3917,36 @@
       parts.rack = new THREE.Object3D(); g.add(parts.rack);
       parts.muzzle = new THREE.Object3D(); parts.muzzle.position.set(0, 0.04, -0.06); g.add(parts.muzzle);
       parts.rackDist = 0;
+    } else if (kind === 'pan' || kind === 'lid') {
+      var bl = new THREE.Group(); g.add(bl);
+      var pts = [];
+      if (kind === 'pan') {
+        bl.rotation.x = 0.25;
+        var ph = boxMesh(0.03, 0.026, 0.5, 0x2a2a2e); ph.position.set(0, 0, -0.2); bl.add(ph);          // long handle
+        var pgrip = boxMesh(0.036, 0.032, 0.16, 0x6b4426); pgrip.position.set(0, 0, 0.0); bl.add(pgrip);  // wooden grip
+        var pdisc = new THREE.Mesh(new THREE.CylinderBufferGeometry(0.15, 0.13, 0.045, 18), mat(0x2b2d31));
+        pdisc.rotation.z = Math.PI / 2; pdisc.position.set(0, 0, -0.6); bl.add(pdisc);                   // flat side faces sideways = BONG
+        var pin = new THREE.Mesh(new THREE.CylinderBufferGeometry(0.125, 0.125, 0.004, 18), mat(0x4a4e55));
+        pin.rotation.z = Math.PI / 2; pin.position.set(0.022, 0, -0.6); bl.add(pin);
+        var pin2 = new THREE.Mesh(new THREE.CylinderBufferGeometry(0.125, 0.125, 0.004, 18), mat(0x4a4e55));
+        pin2.rotation.z = Math.PI / 2; pin2.position.set(-0.022, 0, -0.6); bl.add(pin2);
+        [-0.42, -0.5, -0.6, -0.72].forEach(function (z) { var o = new THREE.Object3D(); o.position.set(0, 0, z); bl.add(o); pts.push(o); });
+      } else {
+        // a round bin lid held like a shield: handle on the back, dome facing out
+        var ld = new THREE.Mesh(new THREE.CylinderBufferGeometry(0.27, 0.27, 0.025, 20), mat(0x9aa3ab));
+        ld.rotation.x = Math.PI / 2; ld.position.set(0, 0.03, -0.09); bl.add(ld);
+        var dome = new THREE.Mesh(new THREE.SphereBufferGeometry(1, 16, 6, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xa9b1b8));
+        dome.scale.set(0.23, 0.05, 0.23); dome.rotation.x = -Math.PI / 2; dome.position.set(0, 0.03, -0.1); bl.add(dome);
+        var rim = new THREE.Mesh(new THREE.CylinderBufferGeometry(0.28, 0.28, 0.03, 20), mat(0x7d868e));
+        rim.rotation.x = Math.PI / 2; rim.position.set(0, 0.03, -0.095); bl.add(rim);
+        var knob = boxMesh(0.06, 0.03, 0.03, 0x6f777e); knob.position.set(0, 0.03, -0.16); bl.add(knob);   // little handle on the front
+        var hdl = boxMesh(0.03, 0.12, 0.02, 0x6f777e); hdl.position.set(0, 0.03, -0.045); bl.add(hdl);      // the handle you hold
+        [[0, 0.03, -0.12], [0.26, 0.03, -0.1], [-0.26, 0.03, -0.1], [0, 0.29, -0.1]].forEach(function (q) { var o = new THREE.Object3D(); o.position.set(q[0], q[1], q[2]); bl.add(o); pts.push(o); });
+      }
+      parts.blade = pts;
+      parts.rack = new THREE.Object3D(); g.add(parts.rack);
+      parts.muzzle = new THREE.Object3D(); parts.muzzle.position.set(0, 0, -0.1); g.add(parts.muzzle);
+      parts.rackDist = 0;
     } else if (kind === 'knife' || kind === 'axe' || kind === 'sword') {
       var wpn = new THREE.Group();
       wpn.rotation.x = 0.25;           // blade tilted up a bit, like you'd really hold it
@@ -3109,6 +3986,8 @@
       var bar = boxMesh(0.026, 0.026, 0.52, mid); bar.position.set(0, 0.032, -0.42); g.add(bar);
       var tube = boxMesh(0.022, 0.022, 0.4, dark); tube.position.set(0, 0.0, -0.36); g.add(tube);
       var bead = boxMesh(0.006, 0.008, 0.006, 0xfff1a8); bead.position.set(0, 0.05, -0.67); g.add(bead);
+      var vrib = boxMesh(0.008, 0.006, 0.5, 0x0d0e10); vrib.position.set(0, 0.047, -0.42); g.add(vrib);             // vent rib
+      for (var sc = 0; sc < 4; sc++) { var shl = boxMesh(0.016, 0.03, 0.012, 0xc0302a); shl.position.set(0.028, 0.0 - (sc % 2) * 0.0, -0.06 + sc * 0.02); g.add(shl); }   // side saddle shells
       parts.rack = boxMesh(0.05, 0.048, 0.16, 0x6b4a2b); parts.rack.position.set(0, -0.002, -0.3); g.add(parts.rack);
       var sstock = boxMesh(0.042, 0.08, 0.26, 0x6b4a2b); sstock.position.set(0, -0.02, 0.18); sstock.rotation.x = 0.12; g.add(sstock);
       var sgrip = boxMesh(0.03, 0.06, 0.05, 0x6b4a2b); sgrip.position.set(0, -0.045, 0.06); g.add(sgrip);
@@ -3121,6 +4000,7 @@
     if (HAND_ON[kind]) { var ho = HAND_ON[kind]; g.add(staticHand(ho.pose, ho.pos, ho.rot)); }
     parts.rackBase = parts.rack.position.z;
     if (parts.mag) parts.mag.userData.baseY = parts.mag.position.y;
+    if (parts.shell && parts.shell.userData.baseY === undefined) parts.shell.userData.baseY = -0.02;
     g.visible = false;
     kick.add(g);
     return parts;
@@ -3222,10 +4102,15 @@
     rifle:   { pose: 'grip', pos: [0.022, -0.06, 0.055], rot: [0.3, 0, -Math.PI / 2] },
     shotgun: { pose: 'grip', pos: [0.022, -0.04, 0.085], rot: [0.15, 0, -Math.PI / 2] },
     rpg:     { pose: 'grip', pos: [0.022, -0.04, 0.025], rot: [0.2, 0, -Math.PI / 2] },
+    smg:     { pose: 'grip', pos: [0.022, -0.05, 0.03], rot: [0.25, 0, -Math.PI / 2] },
+    revolver: { pose: 'grip', pos: [0.022, -0.05, 0.045], rot: [0.35, 0, -Math.PI / 2] },
+    sniper:  { pose: 'grip', pos: [0.022, -0.06, 0.06], rot: [0.3, 0, -Math.PI / 2] },
     // blades: overhand grip, fist round the handle, forearm off to the right
     knife:   { pose: 'grip', pos: [0.058, 0.03, -0.02], rot: [0.25, Math.PI / 2, 0] },
     axe:     { pose: 'grip', pos: [0.058, 0.03, -0.02], rot: [0.25, Math.PI / 2, 0] },
     sword:   { pose: 'grip', pos: [0.058, 0.03, 0.0], rot: [0.25, Math.PI / 2, 0] },
+    pan:     { pose: 'grip', pos: [0.058, 0.03, 0.02], rot: [0.25, Math.PI / 2, 0] },
+    lid:     { pose: 'grip', pos: [0.058, 0.03, 0.0], rot: [0.0, Math.PI / 2, 0] },
     grenade: { pose: 'ball', pos: [0, 0.098, 0.0], rot: [0, 0, 0] },
     rock:    { pose: 'ball', pos: [0, 0.098, 0.0], rot: [0, 0, 0] },
     spawner: { pose: 'grip', pos: [0.022, -0.045, 0.03], rot: [0.22, 0, -Math.PI / 2] }
@@ -3237,8 +4122,23 @@
 
   // Muzzle flash: a glowing blob + a point light (kept at intensity 0 when off,
   // because adding/removing lights forces slow shader recompiles).
-  var flash = new THREE.Mesh(new THREE.SphereBufferGeometry(0.035, 8, 6),
-    new THREE.MeshBasicMaterial({ color: 0xffc35a, transparent: true, opacity: 0.9 }));
+  // the flash is a glowing ball + two crossed "star" cards, drawn ADDITIVE (light adds up, so it glows)
+  var flashStarTex = canvasTexture(64, 64, function (ctx, w, h) {
+    var g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(255,255,230,1)'); g.addColorStop(0.25, 'rgba(255,200,90,0.9)'); g.addColorStop(1, 'rgba(255,120,20,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    for (var i = 0; i < 10; i++) { var a = i * Math.PI / 5, r = i % 2 ? 9 : 32; ctx.lineTo(32 + Math.cos(a) * r, 32 + Math.sin(a) * r); }
+    ctx.fill();
+  }).tex;
+  var flashMat = new THREE.MeshBasicMaterial({ map: flashStarTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  var flash = new THREE.Mesh(new THREE.SphereBufferGeometry(0.03, 8, 6),
+    new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
+  var fStar1 = new THREE.Mesh(new THREE.PlaneBufferGeometry(0.16, 0.16), flashMat);
+  var fStar2 = new THREE.Mesh(new THREE.PlaneBufferGeometry(0.1, 0.22), flashMat);
+  fStar2.rotation.x = Math.PI / 2; fStar2.position.z = -0.06;
+  var fStar3 = fStar2.clone(); fStar3.rotation.set(Math.PI / 2, Math.PI / 2, 0);
+  flash.add(fStar1); flash.add(fStar2); flash.add(fStar3);
   flash.visible = false;
   var flashLight = new THREE.PointLight(0xffb347, 0, 6);
   scene.add(flashLight);
@@ -3305,6 +4205,7 @@
     if (state.sidearm && kind === 'pistol') { state.sidearm = false; selectWeapon('hand'); sfx.rack(); return; }   // holster it
     if (!isItem(kind)) return;
     // pointing at a mannequin up close? hand it to them instead
+    if (ASSIST_KINDS[kind] && state.vr && handSpeed > 2.5) { throwAssisted(kind); return; }   // flicked it: THROW
     var taker = (isGun(kind) || WEAPONS[kind].melee) ? npcInFront(3) : null;
     if (taker) { giveWeapon(taker, kind); selectWeapon('hand'); sfx.grab(); return; }
     var g = guns[kind].group;
@@ -3355,8 +4256,8 @@
     if (w.tool) { webFire(); return; }   // spider tools work differently (section 9b)
     if (!isGun(state.weapon)) return;
     if (state.reloading) {
-      // Shotgun trick: you can stop loading shells and shoot whenever there's one in.
-      if (state.weapon === 'shotgun' && state.ammo.shotgun > 0) cancelReload();
+      // Shell-by-shell guns: you can stop loading and shoot whenever there's one in.
+      if (w.shells && state.ammo[state.weapon] > 0) cancelReload();
       else return;
     }
     if (gameTime - state.lastShot < w.rate) return;
@@ -3368,8 +4269,11 @@
     state.ammo[state.weapon]--;
     state.stats.shots++;
 
-    kickAmount = Math.min(kickAmount + w.recoil, w.rocket ? 0.3 : 0.16);
-    flash.visible = true; flash.scale.setScalar(w.rocket ? 3 : rand(0.8, 1.5)); flashTimer = w.rocket ? 0.09 : 0.045;
+    kickAmount = Math.min(kickAmount + w.recoil, w.rocket ? 0.3 : 0.2);
+    kickSide += rand(-1, 1) * w.recoil * 1.5;           // a bit of random sideways twist
+    flash.visible = true; flash.scale.setScalar((w.rocket ? 3 : rand(0.8, 1.5)) * (w.pellets > 1 || w.recoil > 0.12 ? 1.6 : 1));
+    flash.rotation.z = rand(0, Math.PI);
+    flashTimer = w.rocket ? 0.09 : 0.05;
     getAim(aim);
     flashLight.position.copy(aim.muzzle); flashLight.intensity = 2.2;
     if (w.rocket) {                   // RPG: no bullet, a real rocket flies out (section 9)
@@ -3391,14 +4295,17 @@
     }
     robWarningShot();
 
-    var gun = guns[state.weapon];
-    if (state.weapon === 'pistol' && state.ammo.pistol === 0) {
+    var gun = guns[state.weapon], kindF = state.weapon;
+    if (kindF === 'pistol' && state.ammo.pistol === 0) {
       gun.rack.position.z = gun.rackBase + gun.rackDist; // slide locks back on empty, like a real Glock
-    } else if (state.weapon === 'shotgun' && state.ammo.shotgun > 0) {
-      later(0.22, function () { startRack('shotgun'); sfx.rack(); });  // pump it!
+    } else if (w.pump && state.ammo[kindF] > 0) {
+      // pump-action / bolt-action: work it, and the empty pops out
+      later(kindF === 'sniper' ? 0.35 : 0.22, function () { startRack(kindF, kindF === 'sniper' ? 0.45 : 0.32); sfx.rack(); ejectBrass(kindF); });
     } else {
-      startRack(state.weapon, 0.08, 0.6);  // quick slide cycle
+      startRack(kindF, 0.08, 0.6);  // quick slide cycle
+      if (!w.rocket && kindF !== 'revolver') ejectBrass(kindF);
     }
+    if (gun.cylinder) gun.cylinder.rotation.y += Math.PI / 3;   // revolver cylinder turns
     drawGunScreen(state.weapon);
     scoreDirty = true;
   }
@@ -3410,6 +4317,7 @@
     if (obj.userData.npc) { hitNpc(obj.userData.npc, obj, hit, dir, w); return; }
     var p = obj.userData.prop;
     sparks(hit.point, p ? 0xffe28a : 0xcdb38a);
+    puff(hit.point, w.pellets > 1 ? 0.06 : 0.1);        // a little dust cloud where it hit
     if (!p) { addDecal(hit); sfx.tink(); return; }  // hit scenery
 
     state.stats.hits++;
@@ -3435,23 +4343,35 @@
   var rackAnim = null;   // { kind, t, dur, depth }
   function startRack(kind, dur, depth) { rackAnim = { kind: kind, t: 0, dur: dur || 0.32, depth: depth || 1 }; }
   // Melee swing (pull the trigger with a blade): wind up, SLASH down, come back.
-  var swing = null, handHoverPoint = false;
-  function startSwing() { if (!swing) { swing = { t: 0, dur: 0.34 }; sfx.swish(); } }
+  var swing = null, handHoverPoint = false, kickSide = 0;
+  function startSwing() { if (!swing) { swing = { t: 0, dur: state.weapon === 'lid' ? 0.32 : 0.34, bash: state.weapon === 'lid' }; sfx.swish(); } }
+  var bashZ = 0;
   function swingAngle(dt) {
+    bashZ = 0;
     if (!swing) return 0;
     swing.t += dt;
     var k = swing.t / swing.dur;
     if (k >= 1) { swing = null; return 0; }
+    if (swing.bash) {                                        // bin lid: SHOVE it forward instead of chopping
+      var f = k < 0.3 ? k / 0.3 : 1 - (k - 0.3) / 0.7;
+      bashZ = -0.42 * f;
+      return -0.15 * f;
+    }
     if (k < 0.3) return 1.1 * (k / 0.3);                     // raise it
     if (k < 0.52) return 1.1 - 2.3 * ((k - 0.3) / 0.22);     // chop! (this is the fast bit)
     return -1.2 * (1 - (k - 0.52) / 0.48);                   // bring it back up
   }
   function updateGunAnim(dt) {
     kickAmount *= Math.exp(-dt * 16);
-    kick.position.z = kickAmount * 0.6;
-    kick.rotation.x = kickAmount * 2.2 + swingAngle(dt);
+    kickSide *= Math.exp(-dt * 14);
+    var sa = swingAngle(dt);
+    kick.position.z = kickAmount * 0.6 + bashZ;
+    kick.rotation.x = kickAmount * 2.2 + sa;
+    kick.rotation.y = kickSide;
+    kick.rotation.z = -kickSide * 1.5;
+    updateBrass(dt);
     if (state.weapon === 'hand') {                           // the free hand: relaxed, pointing, or a fist
-      var ps = (grab && grab.hand) ? POSE.fist : (state.triggerHeld ? POSE.half : (handHoverPoint ? POSE.point : POSE.relaxed));
+      var ps = ((grab && grab.hand) || lead) ? POSE.fist : (state.triggerHeld ? POSE.half : (handHoverPoint ? POSE.point : POSE.relaxed));
       poseHand(guns.hand.handRig, ps[0], ps[1], Math.min(1, dt * 16));
     }
     if (rackAnim) {
@@ -3473,7 +4393,7 @@
     if (!isGun(kind) || state.reloading || state.ammo[kind] >= w.mag) return;
     state.reloading = { kind: kind, t: 0, inDone: false, rackDone: false, shellT: 0 };
     var gun = guns[kind];
-    if (kind !== 'shotgun' && kind !== 'rpg') {
+    if (!w.shells && kind !== 'rpg') {
       dropMag(gun);
       gun.mag.visible = false;
       sfx.magOut();
@@ -3494,21 +4414,23 @@
     if (!r) return;
     var w = WEAPONS[r.kind], gun = guns[r.kind];
     r.t += dt;
-    if (r.kind === 'shotgun') {
+    if (w.shells) {                   // one round at a time (shotgun, revolver, sniper)
+      var per = r.kind === 'revolver' ? 0.28 : 0.38;
       r.shellT += dt;
-      var k = r.shellT / 0.38;
+      var k = r.shellT / per;
       gun.shell.visible = k < 0.6;
-      gun.shell.position.y = -0.07 + Math.min(k / 0.6, 1) * 0.05;
-      if (r.shellT >= 0.38) {
+      gun.shell.position.y = gun.shell.userData.baseY - 0.05 + Math.min(k / 0.6, 1) * 0.05;
+      if (r.shellT >= per) {
         r.shellT = 0;
-        state.ammo.shotgun++;
+        state.ammo[r.kind]++;
         sfx.shell();
-        drawGunScreen('shotgun');
-        if (state.ammo.shotgun >= w.mag) {
+        if (gun.cylinder) gun.cylinder.rotation.y += Math.PI / 3;
+        drawGunScreen(r.kind);
+        if (state.ammo[r.kind] >= w.mag) {
           gun.shell.visible = false;
           state.reloading = null;
-          startRack('shotgun'); sfx.rack();
-          drawGunScreen('shotgun');
+          startRack(r.kind); sfx.rack();
+          drawGunScreen(r.kind);
         }
       }
       return;
@@ -3602,6 +4524,233 @@
     }
   }
 
+  // ---- BLOOD ----
+  // Flying drops and splats each use ONE "InstancedMesh": the GPU draws 120 copies of the
+  // same little shape in a single draw call, each with its own position/size/colour.
+  // That's how games draw grass, bullets, crowds... and blood, cheaply.
+  var BLOOD_COLS = [0x6e0909, 0x5c0707, 0x7c0b0b, 0x4e0505];
+  var bloodCol = new THREE.Color(), bloodM = new THREE.Matrix4(), bloodQ = new THREE.Quaternion(), bloodQ2 = new THREE.Quaternion();
+  var bloodS = new THREE.Vector3(), bloodP = new THREE.Vector3(), bloodN = new THREE.Vector3();
+  var HIDE_M = new THREE.Matrix4().makeScale(0, 0, 0);
+  var bloodRay = new THREE.Raycaster();
+  var DOWN = new THREE.Vector3(0, -1, 0), Y_AXIS = new THREE.Vector3(0, 1, 0);
+
+  // what's solid and not moving? (floors, walls, counters: not people, props or buttons)
+  function isScenery(o) { var u = o.userData; return o.visible && !u.npc && !u.prop && !u.button && !u.decal && !u.npcPart; }
+  function sceneryHit(from, dir, far) {
+    bloodRay.set(from, dir); bloodRay.far = far;
+    var hits = bloodRay.intersectObjects(targets, false);
+    for (var i = 0; i < hits.length; i++) if (isScenery(hits[i].object) && hits[i].face) return hits[i];
+    return null;
+  }
+  function worldNormal(hit, out) {
+    out.copy(hit.face.normal).transformDirection(hit.object.matrixWorld);
+    return out;
+  }
+  function floorBelow(p) {                    // height of the floor/table/counter under a point
+    bloodP.copy(p); bloodP.y += 0.05;
+    var h = sceneryHit(bloodP, DOWN, 4);
+    return h ? h.point.y : 0;
+  }
+
+  // -- splats: stuck on floors and walls --
+  var splatTex = canvasTexture(128, 128, function (ctx, w, h) {
+    ctx.fillStyle = '#ffffff';
+    var blob = function (x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); };
+    blob(64, 64, 30);
+    for (var i = 0; i < 14; i++) { var a = Math.random() * 6.28, d = rand(14, 34); blob(64 + Math.cos(a) * d, 64 + Math.sin(a) * d, rand(7, 15)); }
+    for (var j = 0; j < 16; j++) { var a2 = Math.random() * 6.28, d2 = rand(40, 60); blob(64 + Math.cos(a2) * d2, 64 + Math.sin(a2) * d2, rand(1.5, 4)); }
+  }).tex;
+  var SPLAT_N = 120;
+  var splatMesh = new THREE.InstancedMesh(new THREE.PlaneBufferGeometry(1, 1),
+    new THREE.MeshLambertMaterial({ map: splatTex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }), SPLAT_N);
+  splatMesh.frustumCulled = false; splatMesh.renderOrder = 1;
+  for (var bi = 0; bi < SPLAT_N; bi++) { splatMesh.setMatrixAt(bi, HIDE_M); splatMesh.setColorAt(bi, bloodCol.setHex(BLOOD_COLS[0])); }
+  scene.add(splatMesh);
+  var splatIdx = 0, splatGen = [], pools = [];
+  function addSplat(point, normal, sx, sy) {
+    var i = splatIdx++ % SPLAT_N;
+    splatGen[i] = splatIdx;
+    bloodQ.setFromUnitVectors(Z_AXIS, normal);
+    bloodQ.multiply(bloodQ2.setFromAxisAngle(Z_AXIS, Math.random() * 6.28));
+    bloodP.copy(point).addScaledVector(normal, 0.004 + (splatIdx % 7) * 0.0006);   // tiny lift so overlaps don't flicker
+    splatMesh.setMatrixAt(i, bloodM.compose(bloodP, bloodQ, bloodS.set(sx, sy || sx, 1)));
+    splatMesh.setColorAt(i, bloodCol.setHex(pick(BLOOD_COLS)));
+    splatMesh.instanceMatrix.needsUpdate = true; splatMesh.instanceColor.needsUpdate = true;
+    return { i: i, gen: splatIdx, p: bloodP.clone(), q: bloodQ.clone() };
+  }
+  function groundSplat(x, y, z, size) { return addSplat(bloodP.set(x, y, z), Y_AXIS, size * rand(0.8, 1.2), size * rand(0.7, 1.1)); }
+
+  // -- flying drops --
+  var DROP_N = 120;
+  var dropMesh = new THREE.InstancedMesh(new THREE.SphereBufferGeometry(1, 5, 4), new THREE.MeshLambertMaterial({ color: 0x7a0a0a }), DROP_N);
+  dropMesh.frustumCulled = false;
+  scene.add(dropMesh);
+  var drops = [];
+  for (var di = 0; di < DROP_N; di++) { dropMesh.setMatrixAt(di, HIDE_M); drops.push({ p: new THREE.Vector3(), v: new THREE.Vector3(), life: 0, size: 0, floor: 0, splat: 0 }); }
+  var dropIdx = 0, dropsAlive = 0;
+  // n drops from a point, sprayed along dir (can be null), landing on floor height `floor`
+  function bleed(point, dir, n, speed, splatChance, splatSize) {
+    if (!state.blood) return;
+    var floor = floorBelow(point);
+    for (var k = 0; k < n; k++) {
+      var d = drops[dropIdx++ % DROP_N];
+      d.p.copy(point);
+      d.v.set(rand(-1, 1), rand(0.3, 1.4), rand(-1, 1)).multiplyScalar(speed * 0.45);
+      if (dir) d.v.addScaledVector(dir, speed * rand(0.3, 1));
+      d.life = 3; d.size = rand(0.007, 0.016); d.floor = floor;
+      d.splat = Math.random() < (splatChance === undefined ? 0.45 : splatChance) ? (splatSize || 0.09) : 0;
+    }
+    dropsAlive = DROP_N;
+  }
+  function updateDrops(dt) {
+    if (!dropsAlive) return;
+    var live = 0;
+    for (var i = 0; i < DROP_N; i++) {
+      var d = drops[i];
+      if (d.life <= 0) continue;
+      d.v.y -= 9.8 * dt;
+      d.p.addScaledVector(d.v, dt);
+      d.life -= dt;
+      if (d.p.y <= d.floor + 0.01) {
+        if (d.splat) groundSplat(d.p.x, d.floor, d.p.z, d.splat);
+        d.life = 0;
+      }
+      if (d.life <= 0) { dropMesh.setMatrixAt(i, HIDE_M); continue; }
+      live++;
+      bloodS.set(d.size, d.size * 1.8, d.size);          // a bit stretched, like a falling drop
+      bloodQ.setFromUnitVectors(Y_AXIS, bloodN.copy(d.v).normalize());
+      dropMesh.setMatrixAt(i, bloodM.compose(d.p, bloodQ, bloodS));
+    }
+    dropMesh.instanceMatrix.needsUpdate = true;
+    if (!live) dropsAlive = 0;
+  }
+
+  // -- wounds: red holes and cuts stuck on the person (they move with them) --
+  var woundTex = canvasTexture(64, 64, function (ctx, w, h) {
+    var g = ctx.createRadialGradient(32, 32, 1, 32, 32, 30);
+    g.addColorStop(0, 'rgba(25,0,0,1)'); g.addColorStop(0.25, 'rgba(90,6,6,1)');
+    g.addColorStop(0.55, 'rgba(140,14,14,0.85)'); g.addColorStop(1, 'rgba(140,14,14,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(130,12,12,0.8)';
+    for (var i = 0; i < 3; i++) { var x = rand(26, 38); ctx.fillRect(x, 34, rand(2, 4), rand(12, 28)); }   // a few runs dripping down
+  }).tex;
+  var woundGeo = new THREE.PlaneBufferGeometry(0.075, 0.075);
+  var slashGeo = new THREE.PlaneBufferGeometry(0.15, 0.04);
+  var woundMat = new THREE.MeshLambertMaterial({ map: woundTex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 });
+  function addWound(hit, slash) {
+    if (!hit.face) return;
+    var obj = hit.object, d = new THREE.Mesh(slash ? slashGeo : woundGeo, woundMat);
+    d.userData.decal = true;
+    var n = hit.face.normal;
+    d.position.copy(obj.worldToLocal(hit.point.clone())).addScaledVector(n, 0.003);
+    d.quaternion.setFromUnitVectors(Z_AXIS, n);
+    if (slash) d.rotateZ(rand(-0.6, 0.6));
+    obj.add(d);
+    decals.push(d);                 // same limit as bullet holes, so it never costs more than before
+    if (decals.length > MAX_DECALS) { var old = decals.shift(); if (old.parent) old.parent.remove(old); }
+  }
+
+  // a person got hit: wound + spray + a splat on the wall behind them
+  function bloodHit(hit, dir, w, limb) {
+    if (!state.blood) return false;
+    addWound(hit, !!w.melee);
+    var big = limb === 'head' ? 1.6 : 1;
+    bleed(hit.point, dir, Math.round((w.melee ? 10 : 6) * big), w.melee ? 1.6 : 2.2, 0.45, 0.15 * big);
+    bleed(hit.point, null, 3, 0.8, 0.7, 0.11);               // a few drips straight down
+    if (!w.melee) {                                         // the bullet carries on: paint the wall behind
+      var wall = sceneryHit(hit.point, dir, 2.6);
+      if (wall) {
+        var sz = (0.16 + wall.distance * 0.12) * big * (w.pellets > 1 ? 0.6 : 1);
+        addSplat(wall.point, worldNormal(wall, bloodN), sz * 1.3, sz);
+      }
+    }
+    return true;
+  }
+
+  // -- cut-off limbs: red stumps that spurt for a few seconds --
+  var stumpMat = new THREE.MeshLambertMaterial({ color: 0x7a0a0a });
+  var stumpGeo = new THREE.SphereBufferGeometry(1, 8, 6);
+  var stumps = [], spurts = [];
+  function addStump(obj, local, outward) {
+    var s = new THREE.Mesh(stumpGeo, stumpMat);
+    s.position.copy(local);
+    s.quaternion.setFromUnitVectors(Y_AXIS, outward);
+    s.scale.set(0.045, 0.012, 0.045);
+    obj.add(s);
+    stumps.push(s);
+    if (stumps.length > 16) { var old = stumps.shift(); if (old.parent) old.parent.remove(old); }
+    spurts.push({ obj: obj, local: local.clone(), out: outward.clone(), until: gameTime + rand(2, 3.5), t: 0 });
+  }
+  function bloodSever(npc, name) {
+    if (!state.blood) return;
+    var def = NPC_PARTS[name], parent = npc.parts[def.parent];
+    var jA = new THREE.Vector3(def.jA[0], def.jA[1], def.jA[2]), jB = new THREE.Vector3(def.jB[0], def.jB[1], def.jB[2]);
+    addStump(npc.parts[name].mesh, jB, jB.clone().normalize());                    // on the piece that flew off
+    if (parent && !parent.cut) addStump(parent.mesh, jA, jA.clone().normalize());   // on the body
+    npc.parts[name].mesh.getWorldPosition(tmpV);
+    bleed(tmpV, null, 14, 2.2, 0.5, 0.16);
+  }
+  var spurtW = new THREE.Vector3(), spurtD = new THREE.Vector3();
+  function updateSpurts(dt) {
+    for (var i = spurts.length - 1; i >= 0; i--) {
+      var s = spurts[i];
+      if (gameTime > s.until || !s.obj.parent) { spurts.splice(i, 1); continue; }
+      s.t -= dt;
+      if (s.t > 0) continue;
+      s.t = 0.07;
+      spurtW.copy(s.local); s.obj.localToWorld(spurtW);
+      spurtD.copy(s.out).transformDirection(s.obj.matrixWorld);
+      var left = (s.until - gameTime) / 3;               // spurts get weaker
+      bleed(spurtW, spurtD, 1, 1.2 + left * 1.5, 0.35, 0.12);
+    }
+  }
+
+  // -- pools under bodies, and drip trails from anyone wounded --
+  var bleedT = 0;
+  function updateBlood(dt) {
+    updateDrops(dt);
+    updateSpurts(dt);
+    for (var i = pools.length - 1; i >= 0; i--) {          // pools slowly spread out
+      var p = pools[i];
+      if (splatGen[p.i] !== p.gen) { pools.splice(i, 1); continue; }   // got recycled
+      p.size = Math.min(p.max, p.size + dt * p.max / 5);
+      splatMesh.setMatrixAt(p.i, bloodM.compose(p.p, p.q, bloodS.set(p.size, p.size * 0.85, 1)));
+      splatMesh.instanceMatrix.needsUpdate = true;
+      if (p.size >= p.max) pools.splice(i, 1);
+    }
+    bleedT -= dt;
+    if (bleedT > 0 || !state.blood) return;
+    bleedT = 0.4;
+    npcs.forEach(function (n) {
+      if (n.removed) return;
+      var hurt = n.wounds.armL || n.wounds.armR || n.wounds.legL || n.wounds.legR || n.dead;
+      if (!hurt && !(n.ragdoll && n.downed)) return;
+      var t = n.parts.torso;
+      if (n.ragdoll && (n.downed || n.dead) && !n.pooled && t.body) {
+        n.stillN = t.body.velocity.length() < 0.2 ? (n.stillN || 0) + 1 : 0;
+        t.mesh.getWorldPosition(tmpV);
+        var y = floorBelow(tmpV);
+        if (n.stillN >= 3 && tmpV.y - y < 0.4) {          // been lying still for over a second: a pool spreads out under them
+          n.pooled = true;
+          var s = groundSplat(tmpV.x, y, tmpV.z, 0.1);
+          s.size = 0.1; s.max = rand(0.75, 1.05); pools.push(s);
+        }
+      }
+      if (hurt && Math.random() < 0.7) {                  // drip, drip: leaves a trail when they walk or crawl
+        t.mesh.getWorldPosition(tmpV);
+        if (!n.ragdoll) tmpV.y -= 0.2;
+        bleed(tmpV, null, 1, 0.3, 1, rand(0.07, 0.12));
+      }
+    });
+  }
+  function clearBlood() {
+    for (var i = 0; i < SPLAT_N; i++) { splatMesh.setMatrixAt(i, HIDE_M); splatGen[i] = -1; }
+    splatMesh.instanceMatrix.needsUpdate = true;
+    drops.forEach(function (d) { d.life = 0; }); dropsAlive = DROP_N;
+    stumps.forEach(function (s) { if (s.parent) s.parent.remove(s); }); stumps.length = 0; spurts.length = 0; pools.length = 0;
+  }
+
   // Tracers: a short streak along the bullet path
   var tracerPool = [];
   for (var ti = 0; ti < 20; ti++) {
@@ -3616,6 +4765,51 @@
     var pos = t.geometry.attributes.position;
     pos.setXYZ(0, a.x, a.y, a.z); pos.setXYZ(1, b.x, b.y, b.z); pos.needsUpdate = true;
     t.visible = true; t.userData.life = 0.05;
+  }
+
+  // ---- BRASS: empty cases flip out of the gun, bounce on the floor, tink ----
+  // Not physics bodies (too many for the Go): we just move them with gravity ourselves.
+  var brassGeo = new THREE.CylinderBufferGeometry(0.0055, 0.0055, 0.022, 6);
+  var brassMat = new THREE.MeshLambertMaterial({ color: 0xd4a640, emissive: 0x3a2a08 });
+  var shellCaseMat = new THREE.MeshLambertMaterial({ color: 0xc0302a });
+  var brassPool = [], brassIdx = 0;
+  for (var bri = 0; bri < 24; bri++) {
+    var bm0 = new THREE.Mesh(brassGeo, brassMat);
+    bm0.visible = false; bm0.userData = { vel: new THREE.Vector3(), spin: new THREE.Vector3(), life: 0, bounced: 0 };
+    scene.add(bm0); brassPool.push(bm0);
+  }
+  var brassR = new THREE.Vector3();
+  function ejectBrass(kind) {
+    var g = guns[kind];
+    if (!g || !g.muzzle) return;
+    var b = brassPool[brassIdx++ % brassPool.length];
+    b.material = kind === 'shotgun' ? shellCaseMat : brassMat;
+    b.scale.set(kind === 'shotgun' ? 2.4 : 1, kind === 'shotgun' ? 2.6 : (kind === 'sniper' ? 2.2 : 1), kind === 'shotgun' ? 2.4 : 1);
+    g.group.updateMatrixWorld(true);
+    b.position.set(0.03, 0.03, kind === 'rifle' || kind === 'sniper' ? 0.02 : -0.04);
+    g.group.localToWorld(b.position);
+    brassR.set(1, 0, 0).transformDirection(g.group.matrixWorld);     // the gun's right side
+    b.userData.vel.copy(brassR).multiplyScalar(rand(1.6, 2.4)).add(new THREE.Vector3(0, rand(1.8, 2.6), 0));
+    b.userData.spin.set(rand(-20, 20), rand(-20, 20), rand(-20, 20));
+    b.userData.life = 2.5; b.userData.bounced = 0;
+    b.visible = true;
+  }
+  function updateBrass(dt) {
+    for (var i = 0; i < brassPool.length; i++) {
+      var b = brassPool[i], u = b.userData;
+      if (!b.visible) continue;
+      u.life -= dt;
+      if (u.life <= 0) { b.visible = false; continue; }
+      u.vel.y -= 9.8 * dt;
+      b.position.addScaledVector(u.vel, dt);
+      b.rotation.x += u.spin.x * dt; b.rotation.y += u.spin.y * dt; b.rotation.z += u.spin.z * dt;
+      if (b.position.y < 0.01) {                       // hit the floor: bounce, lose energy, tink
+        b.position.y = 0.01;
+        if (u.vel.y < -0.6 && u.bounced < 3) { u.bounced++; if (u.bounced === 1) sfx.casing(); }
+        u.vel.y = Math.abs(u.vel.y) * 0.35; u.vel.x *= 0.5; u.vel.z *= 0.5; u.spin.multiplyScalar(0.5);
+        if (Math.abs(u.vel.y) < 0.3) { u.vel.set(0, 0, 0); u.spin.set(0, 0, 0); b.rotation.x = Math.PI / 2; }
+      }
+    }
   }
 
   // Floating text ("HEADSHOT", "BOOM")
@@ -3831,6 +5025,216 @@
   var WEB_RANGE = 45;
   var ropes = [];            // { a: end, b: end, length, mesh }
   var pendingEnd = null;     // ROPE: first point picked, waiting for the second
+  // =========================================================================
+  // 9c+. HANDS ON PEOPLE
+  //  - grab a LEG: they trip, and you're holding their ankle IN YOUR FIST (the rest hangs/drags)
+  //  - grab an ARM: they stay on their feet and you lead them around by it
+  //  - grab head/chest up close: body shield (like before)
+  //  - flick your hand into someone (trigger NOT held): soft = poke/push, fast = slap, very fast = punch
+  //  - anyone awake you're holding kicks and yells
+  // =========================================================================
+  var handGrip = new THREE.Object3D();                 // the middle of your closed fist
+  handGrip.position.set(0, -0.025, -0.055);
+  guns.hand.group.add(handGrip);
+  var gripW = new THREE.Vector3();
+  function gripPos(out) {
+    handGrip.getWorldPosition(out);
+    if (!state.vr) {                     // desktop: hold them out in front a bit, or they'd fill the screen
+      camera.getWorldDirection(gripDir); gripDir.y = 0; gripDir.normalize();
+      out.addScaledVector(gripDir, 0.55); out.y -= 0.1;
+    }
+    return out;
+  }
+  var gripDir = new THREE.Vector3();
+  var LEGS = { thighL: 1, thighR: 1, shinL: 1, shinR: 1 }, ARMS = { upperArmL: 'L', upperArmR: 'L', forearmL: 'L', forearmR: 'R' };
+  ARMS.upperArmR = 'R';
+
+  // ---- lead someone by the arm ----
+  var lead = null;          // { npc, side, t, yankT }
+  function startLead(npc, part) {
+    if (npc.sitting) standUp(npc);
+    dropNpcWeapon(npc);
+    lead = { npc: npc, side: ARMS[part], t: 0, talkT: 0.6 };
+    npc.led = true; npc.mood = 'calm'; npc.target = null; npc.panicT = 0; npc.speed = 0;
+    if (npc.foe === 'player') npc.foe = null;
+    sfx.grab();
+    say(npc, pick(npc.buddy ? LINES.ledBuddy : LINES.led), npc.buddy ? null : 'scared', true);
+  }
+  function releaseLead(fling) {
+    if (!lead) return;
+    var n = lead.npc;
+    lead = null; n.led = false;
+    if (n.removed || n.ragdoll) return;
+    if (fling) {                                  // yanked them off their feet
+      ragdollNpc(n);
+      handVelWorld(tmpV);
+      var t = n.parts.torso.body;
+      t.velocity.set(tmpV.x * 0.7, Math.max(2, tmpV.y * 0.5 + 2), tmpV.z * 0.7);
+      sfx.swish(); popText('YEET', t.position);
+      return;
+    }
+    if (n.buddy) { say(n, pick(['thanks boss', 'where to now?', 'cheers'])); return; }
+    camera.getWorldPosition(tmpV);
+    if (n.trait === 'fight' || n.gang) startFight(n, 'player');
+    else fleeFrom(n, tmpV.x, tmpV.z);
+  }
+  var ledArmT = new THREE.Vector3();
+  function updateLed(npc, dt) {
+    var L = lead, p = npc.parts;
+    if (!L || L.npc !== npc) { npc.led = false; return false; }
+    L.t += dt;
+    gripPos(gripW);
+    // walk towards your hand, staying an arm's length away
+    var dx = gripW.x - npc.x, dz = gripW.z - npc.z, d = Math.sqrt(dx * dx + dz * dz) || 1e-3;
+    var want = clamp((d - 0.62) * 5, -1.5, 3.4);
+    var spot = collide(npc.x + dx / d * want * dt, npc.z + dz / d * want * dt, 0.25);
+    npc.x = spot.x; npc.z = spot.z;
+    npc.heading += clamp(angleDiff(npc.heading, Math.atan2(dx, dz)), -6 * dt, 6 * dt);
+    npc.vel.set(0, 0, 0); npc.speed = 0;
+    placeNpc(npc);
+    // stumbly legs, fast when you drag them fast
+    var spd = Math.abs(want);
+    npc.walkPhase = (npc.walkPhase || 0) + dt * (3 + spd * 5);
+    var sw = Math.sin(npc.walkPhase) * Math.min(0.7, 0.15 + spd * 0.3);
+    npc.root.position.y = Math.abs(Math.cos(npc.walkPhase)) * 0.03 * Math.min(1, spd);
+    npc.root.rotation.z = Math.sin(npc.walkPhase * 0.5) * 0.05;
+    npc.root.rotation.x = clamp(want * 0.06, -0.1, 0.18);         // leaning into the pull
+    ['thighL', 'thighR', 'shinL', 'shinR'].forEach(function (n) { if (p[n].pivot) p[n].pivot.rotation.set(0, 0, 0); });
+    p.thighL.pivot.rotation.x = sw; p.thighR.pivot.rotation.x = -sw;
+    p.shinL.pivot.rotation.x = Math.max(0, -sw) * 1.2; p.shinR.pivot.rotation.x = Math.max(0, sw) * 1.2;
+    p.torso.mesh.rotation.x = 0;
+    p.head.pivot.rotation.set(-0.1, Math.sin(L.t * 9) * 0.15, 0);
+    // the arm you're holding reaches to your fist; the other one flaps about
+    p.torso.mesh.updateMatrixWorld(true);
+    p.torso.mesh.worldToLocal(ledArmT.copy(gripW));
+    var s = L.side === 'L' ? 1 : -1;
+    vSh.set(s * 0.215, 0.23, 0);
+    ledArmT.sub(vSh); if (ledArmT.length() > 0.62) ledArmT.setLength(0.62); ledArmT.add(vSh);
+    armT.copy(ledArmT);
+    var other = L.side === 'L' ? 'R' : 'L';
+    if (!p['upperArm' + L.side].cut) poseArm(npc, L.side, 'ik', 0, dt * 2);
+    if (!p['upperArm' + other].cut) poseArm(npc, other, npc.buddy ? 'dangle' : 'panic', 0, dt);
+    // talking
+    L.talkT -= dt;
+    if (L.talkT <= 0) { L.talkT = rand(2.2, 3.5); say(npc, pick(npc.buddy ? LINES.ledBuddy : LINES.led), npc.buddy ? null : 'scared'); }
+    // fighters don't put up with it for long
+    if ((npc.trait === 'fight' || npc.gang) && !npc.buddy && L.t > 1.8) {
+      say(npc, pick(['GET OFF ME!', 'RIGHT, THAT\'S IT', 'LET. GO.']), 'angry', true);
+      lead = null; npc.led = false; startFight(npc, 'player');
+      return true;
+    }
+    // a big flick of the wrist = throw them
+    if (state.vr && handSpeed > 7.5 && L.t > 0.3) { releaseLead(true); return true; }
+    return true;
+  }
+
+  // ---- people you're holding (as a ragdoll) put up a fight ----
+  var struggleT = 0;
+  function updateHeld(dt) {
+    if (lead && (lead.npc.removed || lead.npc.ragdoll || lead.npc.dead)) { lead.npc.led = false; lead = null; }
+    if (!grab || !grab.hand || !grab.end.npc) return;
+    var n = grab.end.npc;
+    if (n.dead || n.removed || gameTime < n.koUntil || n.downed && n.hp <= 0) return;   // knocked out / dead: just floppy
+    struggleT -= dt;
+    if (struggleT > 0) return;
+    struggleT = rand(0.18, 0.35);
+    PART_NAMES.forEach(function (name) {                  // kick and flail every free limb
+      var b = n.parts[name].body;
+      if (!b || b === grab.end.body || name === 'torso' || n.parts[name].cut) return;
+      b.wakeUp();
+      b.velocity.set(b.velocity.x + rand(-2.2, 2.2), b.velocity.y + rand(-0.5, 2.5), b.velocity.z + rand(-2.2, 2.2));
+    });
+    if (Math.random() < 0.12) {
+      var upside = n.parts.head.body && grab.end.body && n.parts.head.body.position.y < grab.end.body.position.y - 0.5;
+      say(n, pick(upside ? LINES.upsideDown : LINES.held), 'scared', true);
+    }
+  }
+
+  // ---- touching: poke / push / slap / punch ----
+  var touchRay = new THREE.Raycaster();
+  function tryTouch(speedOverride) {
+    if (state.weapon !== 'hand' || grab || lead || (state.triggerHeld && !speedOverride)) return false;
+    getAim(aim);
+    touchRay.set(aim.origin, aim.dir); touchRay.far = state.vr ? 0.95 : 1.9;
+    var hits = touchRay.intersectObjects(targets, false);
+    if (!hits.length || !hits[0].object.userData.npc) return false;
+    var h = hits[0], npc = h.object.userData.npc;
+    if (gameTime - (npc.touchT || 0) < 0.45) return true;
+    npc.touchT = gameTime;
+    var sp = speedOverride || handSpeed;
+    handVelWorld(tmpV2);
+    if (speedOverride || tmpV2.lengthSq() < 0.01) tmpV2.copy(aim.dir);
+    tmpV2.normalize();
+    touchNpc(npc, h.object.userData.npcPart, h.point, sp, tmpV2);
+    return true;
+  }
+  function touchNpc(npc, part, point, sp, dir) {
+    var name = part;
+    camera.getWorldPosition(tmpV);
+    if (npc.ragdoll) {                                     // poking a body on the floor
+      var b = npc.parts[name].body;
+      if (b) { b.wakeUp(); b.applyImpulse(toCannon(dir.clone().multiplyScalar(2 + sp)), toCannon(point)); }
+      sfx.thud();
+      return;
+    }
+    if (sp < 3.2) {                                        // poke / push
+      sfx.thud();
+      npc.shove = { x: dir.x * 0.9, z: dir.z * 0.9, t: 0.25 };
+      npc.flinchT = 0.25;
+      npc.pokes = gameTime - (npc.pokeAt || -99) < 6 ? (npc.pokes || 0) + 1 : 1;
+      npc.pokeAt = gameTime;
+      if (npc.buddy) { say(npc, pick(LINES.pokeBuddy), null, true); popText('HIGH FIVE', point); return; }
+      if (npc.gang || (npc.trait === 'fight' && npc.pokes >= 3)) {
+        say(npc, pick(['YOU WANNA GO?!', 'TOUCH ME AGAIN.', 'oh it\'s ON']), 'angry', true);
+        if (npc.gang) gangAttack(); else startFight(npc, 'player');
+        return;
+      }
+      if (npc.pokes >= 3) { say(npc, pick(['OKAY I\'M LEAVING', 'WEIRDO!', 'STOP IT!']), 'scared', true); fleeFrom(npc, tmpV.x, tmpV.z); return; }
+      say(npc, pick(LINES.poke), null, true);
+      npc.heading = Math.atan2(tmpV.x - npc.x, tmpV.z - npc.z);    // turn and look at you
+      return;
+    }
+    if (sp < 6.5) {                                        // SLAP
+      sfx.slap();
+      popText('SLAP!', point);
+      npc.slapT = 0.4; npc.slapDir = Math.random() < 0.5 ? 1 : -1;
+      npc.hp -= 5; npc.lastLimb = limbOf(name);
+      npc.shove = { x: dir.x * 0.8, z: dir.z * 0.8, t: 0.25 };
+      say(npc, pick(LINES.slapped), npc.trait === 'fight' ? 'angry' : 'scared', true);
+      react(npc, tmpV.x, tmpV.z, true, 'player');
+      return;
+    }
+    // PUNCH: down they go
+    sfx.thud(); sfx.knock();
+    popText(name === 'head' ? 'POW!' : 'OOF', point);
+    if (name === 'head' && sp > 8.5) { tmpV2.copy(dir).multiplyScalar(3); knockOut(npc, { velocity: tmpV2 }); return; }
+    npc.hp -= 15;
+    ragdollNpc(npc);
+    var pb = npc.parts[name].body || npc.parts.torso.body;
+    pb.wakeUp();
+    pb.applyImpulse(toCannon(dir.clone().setY(Math.max(dir.y, 0.2)).normalize().multiplyScalar(22)), toCannon(point));
+  }
+  // shoves and slaps play out over a few frames (called for every standing mannequin)
+  function updateTouchFx(npc, dt) {
+    if (npc.shove && !npc.ragdoll) {
+      var sh = npc.shove, k = Math.min(1, dt / Math.max(sh.t, dt));
+      var spot = collide(npc.x + sh.x * dt * 2.5, npc.z + sh.z * dt * 2.5, 0.25);
+      npc.x = spot.x; npc.z = spot.z;
+      sh.t -= dt;
+      if (sh.t <= 0) npc.shove = null;
+      npc.root.position.x = npc.x; npc.root.position.z = npc.z;
+      npc.root.rotation.x = -0.12 * (1 - k);                // rocked back
+    }
+    var hm = npc.parts.head.mesh;
+    if (npc.slapT > 0 && !npc.ragdoll) {
+      npc.slapT -= dt;
+      var f = Math.max(0, npc.slapT / 0.4);
+      hm.rotation.y = npc.slapDir * 0.9 * f * f;            // head snaps round, then back
+      hm.rotation.z = npc.slapDir * 0.2 * f;
+      if (npc.slapT <= 0) hm.rotation.set(0, 0, 0);
+    }
+  }
+
   var grab = null;           // WEB: holding an object { end, holdDist, mesh }
   var zip = null;            // WEB: swinging on a wall { anchor, length, mesh }
   var player = { vel: new THREE.Vector3(), airborne: false };
@@ -3902,6 +5306,7 @@
     }
   }
   function webRelease() {
+    if (lead) releaseLead(state.vr && handSpeed > 6);
     if (grab && grab.hand) handLetGo(true);
     if (grab) { scene.remove(grab.mesh); grab = null; }
     if (zip) { scene.remove(zip.mesh); zip = null; }
@@ -3980,14 +5385,15 @@
     if (!grab) return;
     var b = grab.end.body, dtStep = STEP * state.timeScale;
     getAim(aim);
-    gTarget.copy(aim.origin).addScaledVector(aim.dir, grab.holdDist);   // where we want it
+    if (grab.inHand) gripPos(gTarget);                                    // a person: right in your fist
+    else gTarget.copy(aim.origin).addScaledVector(aim.dir, grab.holdDist);   // where we want it
     endWorld(grab.end, cA); endVel(grab.end, cA, cV1);
     // desired velocity points at the target (faster when further away)...
     var vx = (gTarget.x - cA.x) * 12, vy = (gTarget.y - cA.y) * 12, vz = (gTarget.z - cA.z) * 12;
     var vl = Math.sqrt(vx * vx + vy * vy + vz * vz);
     if (vl > 26) { vx *= 26 / vl; vy *= 26 / vl; vz *= 26 / vl; }
     // ...and the force steers the actual velocity towards it (+ cancels gravity so it floats)
-    var m = Math.min(feelMass(grab.end), 6 * b.mass);
+    var m = grab.inHand ? Math.min(32, 8 * b.mass) : Math.min(feelMass(grab.end), 6 * b.mass);
     var gain = Math.min(12, 1.0 / dtStep);
     var g = -world.gravity.y;
     cF.set((vx - cV1.x) * gain * m, (vy - cV1.y) * gain * m + g * m, (vz - cV1.z) * gain * m);
@@ -4144,12 +5550,15 @@
     if (o.userData.supply) { selectWeapon(o.userData.supply); sfx.grab(); return; }    // endless nades + rocks
     if (p && p.type === 'cash') { collectCash(p); return; }
     if (p && p.type === 'item') { removeProp(p); selectWeapon(p.kind); sfx.grab(); sfx.rack(); return; }   // pick up a weapon
-    var hn = o.userData.npc;
-    if (hn && !hn.ragdoll && !hn.dead && !hn.crawling && hn.riseT <= 0 && h.distance <= 1.8 && !state.hostage) { takeHostage(hn); return; }
+    var hn = o.userData.npc, hp = o.userData.npcPart;
+    var standing = hn && !hn.ragdoll && !hn.dead && !hn.crawling && hn.riseT <= 0 && !hn.hostage;
+    if (standing && ARMS[hp] && h.distance <= 2.2) { startLead(hn, hp); return; }            // hold their arm: lead them about
+    if (standing && !LEGS[hp] && h.distance <= 1.8 && !state.hostage) { takeHostage(hn); return; }   // headlock = body shield
     var end = makeEnd(h);
     if (!end.body) return;                                   // a wall. Can't pick up a wall.
     if (end.body.mass > 150) { popText('TOO HEAVY', h.point); sfx.click(); return; }
-    grab = { end: end, holdDist: aim.origin.distanceTo(h.point), mesh: null, hand: true };
+    grab = { end: end, holdDist: aim.origin.distanceTo(h.point), mesh: null, hand: true, inHand: !!hn };
+    if (hn && standing && LEGS[hp]) { popText('TRIP', h.point); say(hn, pick(['WHOA-', 'AAH!', 'MY LEG!']), 'scared', true); }
     sfx.grab();
   }
   // Let go of whatever the hand holds. throwIt = give it an extra shove the way it's moving.
@@ -4158,6 +5567,7 @@
     var b = grab.end.body, npc = grab.end.npc;
     if (throwIt && b) {
       if (state.vr) b.velocity.set(b.velocity.x * 1.5, b.velocity.y * 1.5 + 1, b.velocity.z * 1.5);
+      else if (grab.inHand && !keys.shift) { /* desktop: let go of a person = they drop (hold SHIFT to throw) */ }
       else {                     // desktop can't swing a wrist: letting go = chuck it where you look
         camera.getWorldDirection(tmpV2);
         var sp = 10 * Math.min(1, 8 / Math.max(b.mass, 1) + 0.3);
@@ -4174,6 +5584,7 @@
 
   // ---- throwing nades + rocks ----
   function throwHeld() {
+    if (state.weapon === 'rock') { throwAssisted('rock'); return; }
     var kind = state.weapon, g = guns[kind].group;
     getAim(aim);
     // VR: swing speed decides how hard. Desktop: a nice fixed lob.
@@ -4246,8 +5657,8 @@
     if (p) {
       if (gameTime - (p.meleeT || 0) < 0.25) return true;
       p.meleeT = gameTime;
-      sfx.chop();
-      sparks(hit.point, 0xc4935a);
+      if (w.blunt) { if (w === WEAPONS.pan) sfx.bong(); else sfx.clang(); } else sfx.chop();
+      sparks(hit.point, w.blunt ? 0xffe28a : 0xc4935a);
       if (w.chops && speed >= w.cutSpeed && p.type === 'crate' && splitCrate(p, dir)) { state.stats.chops++; scoreDirty = true; return true; }
       if (p.type === 'barrel' || p.type === 'grenade' || p.kind === 'grenade') { explode(p); return true; }
       if (p.type === 'melon') { smashMelon(p, dir); return true; }
@@ -4256,11 +5667,12 @@
       if (p.type === 'plate') sfx.ping();
       return true;
     }
-    if (gameTime - blade.tinkT > 0.2) { blade.tinkT = gameTime; sfx.tink(); sparks(hit.point, 0xffe28a); }   // hit a wall
+    if (gameTime - blade.tinkT > 0.2) { blade.tinkT = gameTime; if (w.blunt) { if (w === WEAPONS.pan) sfx.bong(); else sfx.clang(); } else sfx.tink(); sparks(hit.point, 0xffe28a); }   // hit a wall
     return true;
   }
   function chopNpc(npc, mesh, hit, dir, speed, w) {
     var name = mesh.userData.npcPart;
+    if (w.blunt) { bonkNpc(npc, mesh, hit, dir, speed, w, null); return; }
     sfx.chop();
     sparks(hit.point, 0xc4935a);
     scareNpcs(hit.point, 5);
@@ -4287,6 +5699,239 @@
     hitNpc(npc, mesh, hit, dir.clone(), { impulse: w.impulse * clamp(speed / 6, 0.4, 1.5), dmg: w.dmg * clamp(speed / 5, 0.4, 1.3), melee: true });
   }
 
+  // ---- frying pan + bin lid: they bonk instead of cut ----
+  var BONK_POPS = ['BONG!', 'BONK', 'CLANG', 'DING DONG'];
+  function bonkNpc(npc, mesh, hit, dir, speed, w, by) {
+    var name = mesh.userData.npcPart, pan = w === WEAPONS.pan || w.npcPan;
+    if (pan) sfx.bong(); else sfx.clang();
+    scareNpcs(hit.point, 5, by);
+    var hard = clamp(speed / 5, 0.4, 1.6);
+    if (!npc.ragdoll && name === 'head' && speed > (pan ? 3 : 4.5)) {      // to the head: lights out
+      npc.lastHit = gameTime;
+      if (!by) state.stats.hits++;
+      dV.copy(dir).setY(0).normalize().multiplyScalar(3 * hard);
+      knockOut(npc, { velocity: dV });
+      popText(pick(BONK_POPS), hit.point);
+      return;
+    }
+    hitNpc(npc, mesh, hit, dir.clone(), { impulse: w.impulse * hard, dmg: w.dmg * hard, melee: true, blunt: true, by: by || undefined });
+    if (!npc.ragdoll && !npc.removed && speed > (pan ? 5.5 : 4.2)) {     // big swing / shove: knocked off their feet
+      ragdollNpc(npc);
+      npc.lastHit = gameTime;
+      var b = npc.parts[name].body || npc.parts.torso.body;
+      b.wakeUp();
+      b.applyImpulse(toCannon(dir.clone().setY(Math.max(dir.y, 0.25)).normalize().multiplyScalar(w.impulse * hard * 1.6)), toCannon(hit.point));
+      if (!pan) popText('SHOVE', hit.point);
+    }
+  }
+
+  // =========================================================================
+  // 9e. CRAZY THROW AIM-ASSIST (axe, knife, sword, frying pan, bin lid, rock - NOT guns)
+  // While you hold one, a red marker shows who it'll hit: the person whose head is closest
+  // to where you're pointing (within 40 degrees, 35 m, and not behind a wall).
+  // Throw it and it bends through the air onto their head, leaving a trail, with a
+  // slow-mo kill cam right before it lands. Made for clips.
+  //   VR: flick your hand + click the touchpad (a slow click still just drops it)
+  //   Rock: trigger, like before.   Desktop: T throws (rocks: click like before).
+  // =========================================================================
+  var ASSIST_KINDS = { axe: 1, knife: 1, sword: 1, pan: 1, lid: 1, rock: 1 };
+  var ASSIST_COS = Math.cos(40 * Math.PI / 180);
+  var homers = [];
+  var lockMark = new THREE.Mesh(new THREE.OctahedronBufferGeometry(0.11, 0),
+    new THREE.MeshBasicMaterial({ color: 0xff2a2a, depthTest: false, transparent: true, opacity: 0.9 }));
+  lockMark.renderOrder = 998; lockMark.visible = false; lockMark.scale.set(1, 1.6, 1);
+  scene.add(lockMark);
+  var lockTarget = null, lockT = 0;
+  var hpV = new THREE.Vector3(), hdV = new THREE.Vector3();
+  function headPoint(npc, out) {
+    var h = npc.parts.head;
+    if (h.cut) { if (npc.parts.torso.body) out.copy(npc.parts.torso.body.position); else npc.parts.torso.mesh.getWorldPosition(out); return out; }
+    if (npc.ragdoll && h.body) out.set(h.body.position.x, h.body.position.y, h.body.position.z);
+    else h.mesh.getWorldPosition(out);
+    return out;
+  }
+  function findThrowTarget() {
+    getAim(aim);
+    var best = null, bestScore = 1e9;
+    npcs.forEach(function (n) {
+      if (n.removed || n.hostage || n.led || (n.dead && n.parts.head.cut)) return;
+      headPoint(n, hpV);
+      hdV.subVectors(hpV, aim.origin);
+      var d = hdV.length();
+      if (d < 0.8 || d > 35) return;
+      var dot = hdV.dot(aim.dir) / d;
+      if (dot < ASSIST_COS) return;
+      var wall = sceneryHit(aim.origin, hdV.divideScalar(d), d - 0.3);   // can you actually see them?
+      if (wall) return;
+      var score = (1 - dot) * 12 + d * 0.04 + (n.ragdoll ? 0.6 : 0) + (n.buddy ? 3 : 0);
+      if (score < bestScore) { bestScore = score; best = n; }
+    });
+    return best;
+  }
+  function updateLockMark(dt) {
+    var holding = ASSIST_KINDS[state.weapon] && state.started && !state.dead;
+    lockT -= dt;
+    if (!holding) { lockTarget = null; lockMark.visible = false; return; }
+    if (lockT <= 0) { lockT = 0.1; lockTarget = findThrowTarget(); }
+    if (!lockTarget || lockTarget.removed) { lockMark.visible = false; return; }
+    headPoint(lockTarget, lockMark.position);
+    lockMark.position.y += 0.36 + Math.sin(gameTime * 6) * 0.04;
+    lockMark.rotation.y += dt * 4;
+    var far = Math.max(1, camera.position.distanceTo ? lockMark.position.distanceTo(camera.getWorldPosition(hdV)) / 6 : 1);
+    lockMark.scale.set(far, far * 1.6, far).multiplyScalar(1 + Math.sin(gameTime * 10) * 0.12);   // stays easy to see far away
+    lockMark.visible = true;
+  }
+
+  // ---- the throw ----
+  var X_AXIS = new THREE.Vector3(1, 0, 0);
+  function throwAssisted(kind) {
+    getAim(aim);
+    var target = findThrowTarget();
+    var g = guns[kind].group;
+    g.getWorldPosition(tmpV); g.getWorldQuaternion(tmpQ);
+    var speed = state.vr ? clamp(9 + handSpeed * 1.4, 13, 26) : 17;
+    var vel = aim.dir.clone().multiplyScalar(speed);
+    if (!target) vel.y += 2.5;                              // nobody to hit: a normal arcing throw
+    var q = tmpQ.clone();
+    if (kind === 'lid') q.copy(LID_Q);                     // frisbee: flat
+    var p = spawnItem(kind, tmpV.clone(), q, vel);
+    // spin: blades + pan flip end over end, the lid spins flat like a frisbee
+    if (kind === 'lid') p.body.angularVelocity.set(0, 28, 0);
+    else if (kind === 'rock') p.body.angularVelocity.set(rand(-12, 12), rand(-12, 12), rand(-12, 12));
+    else { hdV.crossVectors(aim.dir, UP_Y).normalize().multiplyScalar(kind === 'knife' ? 26 : 17); p.body.angularVelocity.set(hdV.x, hdV.y, hdV.z); }
+    p.body.angularDamping = 0;
+    if (target) {
+      p.homing = { npc: target, t: 0, slowed: false, hit: false };
+      homers.push(p);
+      trail.n = 0; trail.prop = p;
+      if (!target.ragdoll && !target.buddy && Math.random() < 0.6) later(0.15, function () { if (!target.removed && !target.ragdoll) say(target, pick(['WHAT THE-', 'OH NO', 'DUCK!', 'is that a ' + (kind === 'lid' ? 'BIN LID' : kind === 'pan' ? 'PAN' : kind.toUpperCase()) + '?!']), 'scared', true); });
+    }
+    lockMark.visible = false;
+    selectWeapon('hand');
+    sfx.swish();
+    return p;
+  }
+
+  // ---- steering: runs inside the physics step, like the hand grab ----
+  var hmV = new CANNON.Vec3();
+  function homingForces() {
+    var dtStep = STEP * state.timeScale;
+    for (var i = 0; i < homers.length; i++) {
+      var p = homers[i], h = p.homing;
+      if (!h || h.hit || p.removed) continue;
+      if (h.npc.removed) { p.homing = null; continue; }
+      headPoint(h.npc, hpV);
+      var b = p.body;
+      var dx = hpV.x - b.position.x, dy = hpV.y - b.position.y, dz = hpV.z - b.position.z;
+      var d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (d < 0.32) { h.hit = true; continue; }            // impact! (dealt with after the physics step)
+      if (d < 1.2) b.collisionResponse = false;           // don't bounce off their shoulder on the way in
+      var sp = Math.max(b.velocity.norm(), 15);
+      var k = Math.min(1, dtStep * (5 + 40 * h.t * h.t));   // steers harder the longer it flies: it WILL land
+      b.velocity.x += (dx / d * sp - b.velocity.x) * k;
+      b.velocity.y += (dy / d * sp - b.velocity.y) * k + 9.82 * dtStep;   // and cancels gravity
+      b.velocity.z += (dz / d * sp - b.velocity.z) * k;
+      b.wakeUp();
+    }
+  }
+  world.addEventListener('preStep', homingForces);
+
+  // ---- trail behind the latest throw: one line, 1 draw call ----
+  // (glowing dots that shrink towards the tail, drawn as ONE instanced mesh)
+  var TRAIL_N = 26;
+  var trailGeo = { attributes: { position: { array: new Float32Array(TRAIL_N * 3), needsUpdate: false } } };
+  var trailLine = new THREE.InstancedMesh(new THREE.SphereBufferGeometry(1, 6, 4),
+    new THREE.MeshBasicMaterial({ color: 0xffc94a, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }), TRAIL_N);
+  trailLine.frustumCulled = false; trailLine.visible = false;
+  scene.add(trailLine);
+  var trM = new THREE.Matrix4(), trP = new THREE.Vector3(), trS = new THREE.Vector3(), trQ = new THREE.Quaternion();
+  function drawTrail() {
+    var a = trailGeo.attributes.position.array;
+    for (var i = 0; i < TRAIL_N; i++) {
+      var r = 0.045 * (1 - i / TRAIL_N);
+      trailLine.setMatrixAt(i, trM.compose(trP.set(a[i * 3], a[i * 3 + 1], a[i * 3 + 2]), trQ, trS.set(r, r, r)));
+    }
+    trailLine.instanceMatrix.needsUpdate = true;
+  }
+  var trail = { n: 0, prop: null, fade: 0 };
+  function updateTrail(dt) {
+    var p = trail.prop;
+    if (p && !p.removed && p.homing) {
+      var pos = trailGeo.attributes.position, a = pos.array;
+      a.copyWithin(3, 0, (TRAIL_N - 1) * 3);              // shift everything back one slot
+      a[0] = p.body.position.x; a[1] = p.body.position.y; a[2] = p.body.position.z;
+      if (trail.n === 0) for (var i = 1; i < TRAIL_N; i++) { a[i * 3] = a[0]; a[i * 3 + 1] = a[1]; a[i * 3 + 2] = a[2]; }
+      trail.n++;
+      drawTrail();
+      trailLine.visible = true; trailLine.material.opacity = 0.85; trail.fade = 0.6;
+    } else if (trail.fade > 0) {
+      trail.fade -= dt; trailLine.material.opacity = Math.max(0, trail.fade / 0.6 * 0.85);
+      if (trail.fade <= 0) { trailLine.visible = false; trail.prop = null; }
+    }
+  }
+
+  // ---- slow-mo kill cam ----
+  var killcam = 0;
+  function normalSpeed() { return state.slowmo ? 0.25 : (state.moon ? 1 : 1); }
+  function updateHoming(dt, dtReal) {
+    updateLockMark(dtReal);
+    updateTrail(dtReal);
+    if (killcam > 0) { killcam -= dtReal; if (killcam <= 0) state.timeScale = normalSpeed(); }
+    for (var i = homers.length - 1; i >= 0; i--) {
+      var p = homers[i], h = p.homing;
+      if (p.removed || !h) { homers.splice(i, 1); if (!p.removed) p.body.collisionResponse = true; continue; }
+      h.t += dt;
+      if (h.t > 4) { p.homing = null; p.body.collisionResponse = true; continue; }   // missed somehow: give up
+      headPoint(h.npc, hpV);
+      var d = hpV.distanceTo(p.body.position);
+      if (!h.slowed && d < 3.2 && h.t > 0.12) {            // nearly there: SLOW... MOTION...
+        h.slowed = true; state.timeScale = 0.22; killcam = 1.1;
+      }
+      if (h.hit) { homers.splice(i, 1); p.homing = null; thrownImpact(p, h.npc); }
+    }
+  }
+  function thrownImpact(p, npc) {
+    var kind = p.kind, b = p.body;
+    b.collisionResponse = true;
+    var dir = new THREE.Vector3(b.velocity.x, b.velocity.y, b.velocity.z).normalize();
+    headPoint(npc, hpV);
+    var wasAlive = !npc.ragdoll && !npc.dead;
+    if (killcam > 0) killcam = Math.max(killcam, 0.7);
+    state.stats.hits++; scoreDirty = true;
+    var headOn = !npc.parts.head.cut;
+    if ((kind === 'axe' || kind === 'sword') && headOn) {        // HEAD OFF
+      sfx.chop();
+      sever(npc, 'head', dir);
+      if (!npc.ragdoll) { npc.downed = true; ragdollNpc(npc); }
+      popText(pick(['BULLSEYE', 'HEADSHOT!', 'GET CHOPPED']), hpV);
+    } else if (kind === 'knife' && headOn) {                    // knife sticks in their head
+      sfx.chop();
+      if (state.blood) { bleed(hpV, dir, 10, 1.8, 0.5, 0.14); }
+      var head = npc.parts.head.mesh, stuck = new THREE.Group();
+      itemVisual.knife.children.forEach(function (c) { stuck.add(new THREE.Mesh(c.geometry, c.material)); });
+      head.updateMatrixWorld(true);
+      var c = itemVisual.knife.userData.box.getCenter(new THREE.Vector3());
+      stuck.position.copy(head.worldToLocal(hpV.clone().addScaledVector(dir, -0.08)));
+      tmpQ.setFromUnitVectors(new THREE.Vector3(0, 0, -1), dir);               // blade pointing the way it flew
+      head.getWorldQuaternion(tmpQ2); stuck.quaternion.copy(tmpQ2.invert().multiply(tmpQ));
+      stuck.translateX(-c.x); stuck.translateY(-c.y); stuck.translateZ(-c.z - 0.06);
+      head.add(stuck);
+      removeProp(p);
+      npc.dead = true; npc.downed = true; npc.deadAt = gameTime;
+      if (!npc.ragdoll) ragdollNpc(npc);
+      var hb = npc.parts.head.body; if (hb) { hb.wakeUp(); hb.velocity.set(hb.velocity.x + dir.x * 3, hb.velocity.y + 0.5, hb.velocity.z + dir.z * 3); }
+      popText(pick(['BULLSEYE', 'YOINK', 'NAILED IT']), hpV);
+      return;
+    } else {                                                    // pan / lid / rock (or a blade into a stump): lights out
+      if (kind === 'pan') sfx.bong(); else if (kind === 'lid') sfx.clang(); else sfx.bonk();
+      if (wasAlive) knockOut(npc, b);
+      else { var hb2 = npc.parts.head.body || npc.parts.torso.body; if (hb2) { hb2.wakeUp(); hb2.velocity.set(hb2.velocity.x + dir.x * 5, hb2.velocity.y + 2, hb2.velocity.z + dir.z * 5); } }
+      popText(kind === 'pan' ? 'BONNNG' : kind === 'lid' ? 'FRISBEE\'D' : 'BULLSEYE', hpV);
+    }
+    // bounce off them instead of carrying on through
+    b.velocity.set(-b.velocity.x * 0.25 + rand(-1, 1), 2.5, -b.velocity.z * 0.25 + rand(-1, 1));
+  }
+
   // =========================================================================
   // 9d. THE SPAWN GUN
   // Point + trigger = spawn the selected thing where the laser lands (a see-through
@@ -4294,7 +5939,7 @@
   // VR: click the bottom of the touchpad (or flick-reload). Desktop: R / E or scroll.
   // Each entry: name, size (for the preview box) and make(x, floorY, z, facing).
   // =========================================================================
-  var RANDOM_GUNS = ['pistol', 'rifle', 'shotgun', 'sword', 'axe'];
+  var RANDOM_GUNS = ['pistol', 'rifle', 'shotgun', 'smg', 'revolver', 'sword', 'axe', 'pan'];
   function lift(p, y) { if (p && y) { p.body.position.y += y; syncProp(p); } return p; }   // put it on the table/floor you aimed at
   function spawnPerson(x, z, setup) {
     var n = makeNpc(x, z, { heading: Math.atan2(rig.position.x - x, rig.position.z - z) });
@@ -4331,7 +5976,7 @@
     { name: 'PALLET',     size: [1.1, 0.13, 1.0], make: function (x, y, z, ry) { return makePallet(x, y, z, ry); } },
     { name: 'BURGER',     size: [0.13, 0.11, 0.13], make: function (x, y, z) { return makeBurger(x, y + 0.056, z); } },
     { name: 'CAR',        size: [4.7, 1.5, 1.85], make: function (x, y, z, ry) { return makeCar(x, z, ry + Math.PI / 2, y + 0.8); } },
-    { name: 'GUN',        size: [0.3, 0.2, 0.9], make: function (x, y, z) { return spawnItem(pick(['pistol', 'rifle', 'shotgun', 'rpg', 'knife', 'axe', 'sword']), new THREE.Vector3(x, y + 0.3, z), ROLL_Q, new THREE.Vector3()); } },
+    { name: 'GUN',        size: [0.3, 0.2, 0.9], make: function (x, y, z) { return spawnItem(pick(['pistol', 'rifle', 'shotgun', 'smg', 'revolver', 'sniper', 'rpg', 'knife', 'axe', 'sword', 'pan', 'lid']), new THREE.Vector3(x, y + 0.3, z), ROLL_Q, new THREE.Vector3()); } },
     { name: 'NADE',       size: [0.1, 0.1, 0.1], make: function (x, y, z) { return spawnItem('grenade', new THREE.Vector3(x, y + 0.1, z), null, new THREE.Vector3()); } },
     { name: 'DELETE',     size: [0.4, 0.4, 0.4], del: true }
   ];
@@ -4425,17 +6070,17 @@
   board.position.set(-1.95, 1.75, -2.2);
   board.rotation.y = 0.72;  // angled to face you
   scene.add(board);
-  var backing = boxMesh(1.5, 1.62, 0.04, 0x1b2430);
-  backing.position.set(0, -0.25, -0.03);
+  var backing = boxMesh(1.5, 1.86, 0.04, 0x1b2430);
+  backing.position.set(0, -0.37, -0.03);
   board.add(backing);
   targets.push(backing);
   // The whole board is ONE picture (canvas) on ONE flat plane = 1 draw call.
   // The buttons you hit are invisible boxes sitting on top of it (rays still hit invisible things).
   var boardCanvas = canvasTexture(512, 512, function () {});
-  var boardFace = new THREE.Mesh(new THREE.PlaneBufferGeometry(1.5, 1.62), new THREE.MeshBasicMaterial({ map: boardCanvas.tex }));
-  boardFace.position.set(0, -0.25, -0.005);
+  var boardFace = new THREE.Mesh(new THREE.PlaneBufferGeometry(1.5, 1.86), new THREE.MeshBasicMaterial({ map: boardCanvas.tex }));
+  boardFace.position.set(0, -0.37, -0.005);
   board.add(boardFace);
-  function boardPx(x, y) { return [(x + 0.75) / 1.5 * 512, (0.56 - y) / 1.62 * 512]; }   // board metres -> canvas pixels
+  function boardPx(x, y) { return [(x + 0.75) / 1.5 * 512, (0.56 - y) / 1.86 * 512]; }   // board metres -> canvas pixels
 
   var BUTTON_DEFS = [
     { label: 'CRATE',   kind: 'spawn',  act: function () { SPAWN.crate(); } },
@@ -4459,12 +6104,13 @@
     { label: 'MOON',    kind: 'toggle', key: 'moon', act: function () {
         state.moon = !state.moon;
         world.gravity.set(0, state.moon ? -1.62 : -9.82, 0);
-        props.forEach(function (p) { p.body.wakeUp(); }); } }
+        props.forEach(function (p) { p.body.wakeUp(); }); } },
+    { label: 'BLOOD',   kind: 'toggle', key: 'blood', pos: [2, 6], act: function () { state.blood = !state.blood; if (!state.blood) clearBlood(); } }
   ];
   var buttons = [];
   var BW = 0.44, BH = 0.2;
   BUTTON_DEFS.forEach(function (def, i) {
-    var col = i % 3, row = Math.floor(i / 3);
+    var col = def.pos ? def.pos[0] : i % 3, row = def.pos ? def.pos[1] : Math.floor(i / 3);
     var m = new THREE.Mesh(boxGeo(BW, BH, 0.03));
     m.visible = false;
     m.position.set((col - 1) * (BW + 0.03), 0.28 - row * (BH + 0.04), 0);
@@ -4681,8 +6327,14 @@
     return { x: clamp(x, -5.7, 33.4), z: clamp(z, -25.9, 17.4) };   // stay inside the map's fences
   }
   // Walk into crates and cans to kick them around
-  var feet = new THREE.Vector3();
+  var feet = new THREE.Vector3(), lastFeet = new THREE.Vector3(), lastFeetT = -1, playerSpeed = 0;
   function kickProps() {
+    camera.getWorldPosition(feet);
+    if (lastFeetT >= 0 && gameTime > lastFeetT) {          // how fast are YOU moving (walk ~2, flying on a web 6+)
+      var sp = Math.sqrt((feet.x - lastFeet.x) * (feet.x - lastFeet.x) + (feet.z - lastFeet.z) * (feet.z - lastFeet.z)) / (gameTime - lastFeetT);
+      playerSpeed += (Math.min(sp, 30) - playerSpeed) * 0.3;
+    }
+    lastFeet.copy(feet); lastFeetT = gameTime;
     if (rig.position.y > PLAYER_HEIGHT + 0.6) return;   // flying over things doesn't kick them
     camera.getWorldPosition(feet);
     props.forEach(function (p) {
@@ -4731,6 +6383,9 @@
     else if (k === '4') equipTool('web');
     else if (k === '5') equipTool('rope');
     else if (k === 'c') cutAllWebs();
+    else if (k === 't' && ASSIST_KINDS[state.weapon]) throwAssisted(state.weapon);   // THROW (auto-aim)
+    else if (k === 'f') tryTouch(2);                  // poke / push whoever you're looking at
+    else if (k === 'v') tryTouch(e.shiftKey ? 9 : 4.5);   // slap (SHIFT+V = punch)
   });
   document.addEventListener('pointerlockchange', function () {
     document.getElementById('crosshair').style.display = locked() ? 'block' : 'none';
@@ -4892,6 +6547,10 @@
     updateFx(dt);
     updateRockets(dt);
     updatePuffs(dt);
+    updateBlood(dt);
+    updateHeld(dt);
+    updateHoming(dt, dtReal);
+    if (state.vr && handSpeed > 1.4 && state.started) tryTouch(0);
     updateGrenades(dt);
     updateHandTracking(dtReal);
     updateMelee(dtReal);
@@ -4913,7 +6572,11 @@
     updateSpawner(dtReal);
     updateRobbery(dtReal);
     updateGang(dtReal);
+    updateTalk(dtReal);
+    updateBubbles(dtReal);
+    updateFaces(dtReal);
     updateCulling(dtReal);
+    camera.getWorldPosition(sky.position);
 
     boardTimer += dtReal;
     if (boardTimer > 0.05) {
@@ -4947,7 +6610,8 @@
     react: react, startFight: startFight, giveWeapon: giveWeapon, hurtPlayer: hurtPlayer, scare: scareNpcs,
     spawns: SPAWNS, spawnSel: function (i) { spawnIdx = i; drawSpawnScreen(); }, makeMelon: makeMelon,
     clerks: function () { return clerks; }, startRobbery: startRobbery, clerkFight: clerkFight,
-    hostage: function () { return state.hostage; }, gang: function () { return gangState; }, comply: comply, refuse: refuse, robPressure: robPressure
+    hostage: function () { return state.hostage; }, gang: function () { return gangState; },
+    say: say, lines: LINES, setFace: setFace, FACE: FACE, dress: dressNpc, randomOutfit: randomOutfit, throwAssisted: throwAssisted, lockTarget: function () { return lockTarget; }, touch: tryTouch, touchNpc: touchNpc, lead: function () { return lead; }, grabState: function () { return grab; }, gripPos: gripPos, bleed: bleed, clearBlood: clearBlood, splatMesh: splatMesh, makeNpc: makeNpc, OUTFITS: OUTFITS, comply: comply, refuse: refuse, robPressure: robPressure
   };
 })();
 </script>
